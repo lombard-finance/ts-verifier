@@ -9,7 +9,7 @@ import {
 async function generateSegwitAddress() {
   try {
     const publicKey = Buffer.from(
-      '043dcf7a68429b23a0396ca61c1ab243ccbbcc629ff04c59394458d6db5dd2bb159e0b7a71ef07247b59a0a21b1f1eaee61a40064ade423e926f38550065a43587',
+      '033dcf7a68429b23a0396ca61c1ab243ccbbcc629ff04c59394458d6db5dd2bb15',
       'hex'
     );
 
