@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "format": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
-    "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check"
+    "format": "prettier *.js \"*{.js,.ts}\" -w",
+    "lint": "prettier *.js \"*{.js,.ts}\" --check"
   },
   "dependencies": {
     "@types/node": "^22.13.10",
