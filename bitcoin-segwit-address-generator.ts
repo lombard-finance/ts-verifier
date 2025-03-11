@@ -54,12 +54,12 @@ const BSC_LBTC_CONTRACT = Buffer.from(
   "hex",
 );
 const SUI_LBTC_CONTRACT = Buffer.from(
-  "818430a456ff977f7320f78650d19801f90758d200a01dd3c2c679472c521357",
+  "3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040",
   "hex",
 );
 
 // API
-const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/"
+const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/";
 
 // Blockchain Types
 export enum BlockchainType {
@@ -515,20 +515,21 @@ export async function calculateDeterministicAddress(
   let nonce: number;
   try {
     // Fetch data from the API
-
     const url = URL + destination + "/" + toAddress;
     const response = await fetch(url);
-    
+
     if (!response.ok) {
-      throw new BitcoinAddressError(`API request failed with status: ${response.status}`);
+      throw new BitcoinAddressError(
+        `API request failed with status: ${response.status}`,
+      );
     }
-    
-    const data = await response.json() as ApiResponse;
-    
+
+    const data = (await response.json()) as ApiResponse;
+
     if (!data.addresses || data.addresses.length === 0) {
-      throw new BitcoinAddressError('No addresses returned from API');
+      throw new BitcoinAddressError("No addresses returned from API");
     }
-    
+
     claimedAddress = data.addresses[0].btc_address;
     referralId = data.addresses[0].deposit_metadata.referral;
     nonce = data.addresses[0].deposit_metadata.nonce;
@@ -536,9 +537,11 @@ export async function calculateDeterministicAddress(
     if (error instanceof BitcoinAddressError) {
       throw error;
     }
-    
+
     const errorMessage = error instanceof Error ? error.message : String(error);
-    throw new BitcoinAddressError(`Failed to verify address with API: ${errorMessage}`);
+    throw new BitcoinAddressError(
+      `Failed to verify address with API: ${errorMessage}`,
+    );
   }
 
   const address = Buffer.from(toAddress.substring(2), "hex");
@@ -549,7 +552,7 @@ export async function calculateDeterministicAddress(
     address,
     Buffer.from(referralId),
     nonce,
-    blockchainType
+    blockchainType,
   );
 
   return computedAddress === claimedAddress;
