@@ -465,7 +465,7 @@ export interface ApiResponse {
 export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
   toAddress: string,
-): Promise<boolean> {
+): Promise<{ computedAddress: string; claimedAddress: string }> {
   if (!toAddress.startsWith("0x")) {
     throw new BitcoinAddressError("Malformed toAddress");
   }
@@ -555,5 +555,43 @@ export async function calculateDeterministicAddress(
     blockchainType,
   );
 
-  return computedAddress === claimedAddress;
+  return { computedAddress, claimedAddress };
 }
+
+async function main() {
+  const type = process.argv[2];
+  let blockchainType: SupportedBlockchains;
+  switch (type) {
+    case "ethereum":
+      blockchainType = SupportedBlockchains.Ethereum;
+      break;
+    case "base":
+      blockchainType = SupportedBlockchains.Base;
+      break;
+    case "bsc":
+      blockchainType = SupportedBlockchains.BSC;
+      break;
+    case "sui":
+      blockchainType = SupportedBlockchains.Sui;
+      break;
+    default:
+      throw new BitcoinAddressError(
+        `Unrecognized destination network: ${type}`,
+      );
+  }
+
+  const toAddress = process.argv[3];
+  const { computedAddress, claimedAddress } =
+    await calculateDeterministicAddress(blockchainType, toAddress);
+
+  if (computedAddress === claimedAddress) {
+    console.log("Addresses match!");
+  } else {
+    console.log("WARNING: Address mismatch!");
+  }
+
+  console.log("Address fetched from API:", claimedAddress);
+  console.log("Address computed:", computedAddress);
+}
+
+main();
