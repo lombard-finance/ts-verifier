@@ -64,6 +64,7 @@ const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/"
 // Blockchain Types
 export enum BlockchainType {
   EVM = "evm",
+  Sui = "sui",
 }
 
 export enum SupportedBlockchains {
@@ -177,7 +178,7 @@ export function computeAuxDataV0(
 /**
  * EVM-specific deposit tweak calculations
  */
-export function evmDepositTweak(
+export function depositTweak(
   lbtcAddress: Buffer,
   depositAddress: Buffer,
   chainId: Buffer | Uint8Array,
@@ -220,7 +221,22 @@ export function calcTweakBytes(
         );
       }
 
-      return evmDepositTweak(lbtcAddress, toAddress, chainId, auxData);
+      return depositTweak(lbtcAddress, toAddress, chainId, auxData);
+    case BlockchainType.Sui:
+      // Sui uses 32-byte address
+      if (lbtcAddress.length !== 32) {
+        throw new BitcoinAddressError(
+          `Bad LbtcAddress (got ${lbtcAddress.length} bytes, expected 32)`,
+        );
+      }
+
+      if (toAddress.length !== 32) {
+        throw new BitcoinAddressError(
+          `Bad ToAddress (got ${toAddress.length} bytes, expected 32)`,
+        );
+      }
+
+      return depositTweak(lbtcAddress, toAddress, chainId, auxData);
     default:
       throw new BitcoinAddressError(
         `Unsupported blockchain type: ${blockchainType}`,
@@ -379,6 +395,7 @@ export class AddressService {
     toAddress: Address,
     referralId: Buffer | Uint8Array,
     nonce: number,
+    blockchainType: BlockchainType,
   ): string {
     // Compute aux data
     let auxData: Buffer;
@@ -394,7 +411,7 @@ export class AddressService {
     let tweakBytes: Buffer;
     try {
       tweakBytes = calcTweakBytes(
-        BlockchainType.EVM,
+        blockchainType,
         chainId,
         toAddress,
         lbtcAddress,
@@ -461,26 +478,31 @@ export async function calculateDeterministicAddress(
   let chainId: Buffer;
   let lbtcAddress: Address;
   let destination: string;
+  let blockchainType: BlockchainType;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
       lbtcAddress = ETHEREUM_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_ETHEREUM";
+      blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
       lbtcAddress = BASE_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BASE";
+      blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
       lbtcAddress = BSC_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BSC";
+      blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
       lbtcAddress = SUI_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SUI";
+      blockchainType = BlockchainType.Sui;
       break;
     default:
       console.error("Unexpected destination chain:", chain);
@@ -527,6 +549,7 @@ export async function calculateDeterministicAddress(
     address,
     Buffer.from(referralId),
     nonce,
+    blockchainType
   );
 
   return computedAddress === claimedAddress;
