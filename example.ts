@@ -13,16 +13,12 @@ async function generateSegwitAddress() {
     const chain = SupportedBlockchains.Ethereum;
 
     // Destination address (20 bytes)
-    const toAddress = Buffer.from(
-      "57f9672ba603251c9c03b36cabdbbca7ca8cfcf4",
-      "hex",
-    ).slice(0, 20);
+    const toAddress = "0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4";
 
     // Calculate deterministic segwit address
-    const address = calculateDeterministicAddress(chain, toAddress);
+    const match = await calculateDeterministicAddress(chain, toAddress);
 
-    console.log("Generated Segwit Address:", address);
-    return address;
+    console.log("Match:", match);
   } catch (error) {
     if (error instanceof BitcoinAddressError) {
       console.error("Bitcoin Address Generation Error:", error.message);

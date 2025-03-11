@@ -58,6 +58,9 @@ const SUI_LBTC_CONTRACT = Buffer.from(
   "hex",
 );
 
+// API
+const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/"
+
 // Blockchain Types
 export enum BlockchainType {
   EVM = "evm",
@@ -420,15 +423,36 @@ export function createAddressService(config: Config): AddressService {
   return new AddressService(config);
 }
 
+// API Response interfaces
+export interface DepositMetadata {
+  to_address: string;
+  to_blockchain: string;
+  referral: string;
+  nonce: number;
+}
+
+export interface AddressInfo {
+  btc_address: string;
+  type: string;
+  deposit_metadata: DepositMetadata;
+  created_at: string;
+}
+
+export interface ApiResponse {
+  addresses: AddressInfo[];
+}
+
 /**
  * Main function for calculating a deterministic address
  */
-export function calculateDeterministicAddress(
+export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
-  toAddress: Address,
-  referralId: Buffer | Uint8Array = Buffer.from("lombard"),
-  nonce: number = 0,
-): string {
+  toAddress: string,
+): Promise<boolean> {
+  if (!toAddress.startsWith("0x")) {
+    throw new BitcoinAddressError("Malformed toAddress");
+  }
+
   let config: Config = {
     network: "mainnet",
     depositPublicKey: MAINNET_PUBLIC_KEY,
@@ -436,22 +460,27 @@ export function calculateDeterministicAddress(
 
   let chainId: Buffer;
   let lbtcAddress: Address;
+  let destination: string;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
       lbtcAddress = ETHEREUM_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_ETHEREUM";
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
       lbtcAddress = BASE_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_BASE";
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
       lbtcAddress = BSC_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_BSC";
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
       lbtcAddress = SUI_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_SUI";
       break;
     default:
       console.error("Unexpected destination chain:", chain);
@@ -459,12 +488,46 @@ export function calculateDeterministicAddress(
       break;
   }
 
+  let claimedAddress: string;
+  let referralId: string;
+  let nonce: number;
+  try {
+    // Fetch data from the API
+
+    const url = URL + destination + "/" + toAddress;
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new BitcoinAddressError(`API request failed with status: ${response.status}`);
+    }
+    
+    const data = await response.json() as ApiResponse;
+    
+    if (!data.addresses || data.addresses.length === 0) {
+      throw new BitcoinAddressError('No addresses returned from API');
+    }
+    
+    claimedAddress = data.addresses[0].btc_address;
+    referralId = data.addresses[0].deposit_metadata.referral;
+    nonce = data.addresses[0].deposit_metadata.nonce;
+  } catch (error: unknown) {
+    if (error instanceof BitcoinAddressError) {
+      throw error;
+    }
+    
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new BitcoinAddressError(`Failed to verify address with API: ${errorMessage}`);
+  }
+
+  const address = Buffer.from(toAddress.substring(2), "hex");
   const service = createAddressService(config);
-  return service.calculateDeterministicAddress(
+  const computedAddress = service.calculateDeterministicAddress(
     chainId,
     lbtcAddress,
-    toAddress,
-    referralId,
+    address,
+    Buffer.from(referralId),
     nonce,
   );
+
+  return computedAddress === claimedAddress;
 }
