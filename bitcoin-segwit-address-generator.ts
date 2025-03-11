@@ -40,6 +40,24 @@ const SUI_CHAIN_ID = Buffer.from(
   "hex",
 );
 
+// LBTC Contracts
+const ETHEREUM_LBTC_CONTRACT = Buffer.from(
+  "8236a87084f8B84306f72007F36F2618A5634494",
+  "hex",
+);
+const BASE_LBTC_CONTRACT = Buffer.from(
+  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
+  "hex",
+);
+const BSC_LBTC_CONTRACT = Buffer.from(
+  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
+  "hex",
+);
+const SUI_LBTC_CONTRACT = Buffer.from(
+  "818430a456ff977f7320f78650d19801f90758d200a01dd3c2c679472c521357",
+  "hex",
+);
+
 // Blockchain Types
 export enum BlockchainType {
   EVM = "evm",
@@ -406,46 +424,34 @@ export function createAddressService(config: Config): AddressService {
  * Main function for calculating a deterministic address
  */
 export function calculateDeterministicAddress(
-  bitcoinNetwork: string,
   chain: SupportedBlockchains,
-  lbtcAddress: Address,
   toAddress: Address,
-  referralId: Buffer | Uint8Array,
+  referralId: Buffer | Uint8Array = Buffer.from("lombard"),
   nonce: number = 0,
 ): string {
-  let config: Config;
-  switch (bitcoinNetwork) {
-    case "mainnet":
-      config = {
-        network: "mainnet",
-        depositPublicKey: MAINNET_PUBLIC_KEY,
-      };
-      break;
-    case "signet":
-      config = {
-        network: "signet",
-        depositPublicKey: SIGNET_PUBLIC_KEY,
-      };
-      break;
-    default:
-      console.error("Unexpected network:", bitcoinNetwork);
-      throw new BitcoinAddressError(`Unexpected network: ${bitcoinNetwork}`);
-      break;
-  }
+  let config: Config = {
+    network: "mainnet",
+    depositPublicKey: MAINNET_PUBLIC_KEY,
+  };
 
   let chainId: Buffer;
+  let lbtcAddress: Address;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
+      lbtcAddress = ETHEREUM_LBTC_CONTRACT;
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
+      lbtcAddress = BASE_LBTC_CONTRACT;
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
+      lbtcAddress = BSC_LBTC_CONTRACT;
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
+      lbtcAddress = SUI_LBTC_CONTRACT;
       break;
     default:
       console.error("Unexpected destination chain:", chain);
