@@ -32,21 +32,28 @@ async function main() {
 
   const len = computedAddresses.length;
   for (let i = 0; i < len; i++) {
-    console.log(`Checking for address ${i}:`);
-    if (referralIds[i] !== undefined) {
-      console.log(`    partner code ${referralIds[i]}`);
+    console.log(`Checking for address ${claimedAddresses[i]}:`);
+    if (referralIds[i] != undefined) {
+      console.log(`- partner code: ${referralIds[i]}`);
     }
-    if (nonces[i] !== undefined) {
-      console.log(`    and nonce ${nonces[i]}...`);
+    if (nonces[i] != undefined) {
+      console.log(`- nonce: ${nonces[i]}`);
+    } else {
+      console.log(`- nonce: 0`);
     }
+
+    console.log(`Address fetched from API:\t${claimedAddresses[i]}`);
+    console.log(`Address computed:\t\t${computedAddresses[i]}`);
+
     if (computedAddresses[i] === claimedAddresses[i]) {
       console.log("Addresses match!");
     } else {
       console.log("WARNING: Address mismatch!");
     }
 
-    console.log("Address fetched from API:", claimedAddresses[i]);
-    console.log("Address computed:", computedAddresses[i]);
+    if (i !== len - 1) {
+      console.log("");
+    }
   }
 }
 
