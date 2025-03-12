@@ -21,20 +21,10 @@
   dependencies:
     "@types/node" "*"
 
-base-58@^0.0.1:
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/base-58/-/base-58-0.0.1.tgz#85d3e70251075661933388f831d1eb8b8f6314e3"
-  integrity sha512-denlKTnozZTVWuh1QkbXf10kkFNc+0/eno29RR+6g5al0yGI+iAOFt/cIA2tvnKoADlUFLZHs50ZdWF+c9WBnw==
-
 base-x@^4.0.0:
   version "4.0.1"
   resolved "https://registry.yarnpkg.com/base-x/-/base-x-4.0.1.tgz#817fb7b57143c501f649805cb247617ad016a885"
   integrity sha512-uAZ8x6r6S3aUM9rbHGVOIsR15U/ZSc82b3ymnCPsT45Gk1DDvhDPdIgB5MrhirZWt+5K0EEPQH985kNqZgNPFw==
-
-base-x@^5.0.0:
-  version "5.0.1"
-  resolved "https://registry.yarnpkg.com/base-x/-/base-x-5.0.1.tgz#16bf35254be1df8aca15e36b7c1dda74b2aa6b03"
-  integrity sha512-M7uio8Zt++eg3jPj+rHMfCC+IuygQHHCOU+IYsVtik6FWjuYpVt/+MRKcgsAMHh8mMFAwnB+Bs+mTrFiXjMzKg==
 
 bech32@^2.0.0:
   version "2.0.0"
@@ -75,13 +65,6 @@ bs58@^5.0.0:
   dependencies:
     base-x "^4.0.0"
 
-bs58@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/bs58/-/bs58-6.0.0.tgz#a2cda0130558535dd281a2f8697df79caaf425d8"
-  integrity sha512-PD0wEnEYg6ijszw/u8s+iI3H17cTymlrwkKhDhPZq+Sokl3AU4htyBFTjAeNAlCCmg0f53g6ih3jATyCKftTfw==
-  dependencies:
-    base-x "^5.0.0"
-
 bs58check@^3.0.1:
   version "3.0.1"
   resolved "https://registry.yarnpkg.com/bs58check/-/bs58check-3.0.1.tgz#2094d13720a28593de1cba1d8c4e48602fdd841c"
@@ -89,14 +72,6 @@ bs58check@^3.0.1:
   dependencies:
     "@noble/hashes" "^1.2.0"
     bs58 "^5.0.0"
-
-bs58check@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/bs58check/-/bs58check-4.0.0.tgz#46cda52a5713b7542dcb78ec2efdf78f5bf1d23c"
-  integrity sha512-FsGDOnFg9aVI9erdriULkd/JjEWONV/lQE5aYziB5PoBsXRind56lh8doIZIc9X4HoxT5x4bLjMWN1/NB8Zp5g==
-  dependencies:
-    "@noble/hashes" "^1.2.0"
-    bs58 "^6.0.0"
 
 elliptic@^6.5.7:
   version "6.6.1"
