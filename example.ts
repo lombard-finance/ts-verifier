@@ -4,7 +4,7 @@ import {
   BlockchainType,
   BitcoinAddressError,
   SupportedBlockchains,
-} from "./bitcoin-segwit-address-generator";
+} from "./address-calculator";
 
 // Example usage
 async function generateSegwitAddress() {
