@@ -453,6 +453,7 @@ export interface AddressInfo {
   type: string;
   deposit_metadata: DepositMetadata;
   created_at: string;
+  deprecated: boolean;
 }
 
 export interface ApiResponse {
@@ -465,7 +466,12 @@ export interface ApiResponse {
 export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
   toAddress: string,
-): Promise<{ computedAddress: string; claimedAddress: string }> {
+): Promise<{
+  computedAddresses: string[];
+  claimedAddresses: string[];
+  referralIds: string[];
+  nonces: number[];
+}> {
   if (!toAddress.startsWith("0x")) {
     throw new BitcoinAddressError("Malformed toAddress");
   }
@@ -510,9 +516,9 @@ export async function calculateDeterministicAddress(
       break;
   }
 
-  let claimedAddress: string;
-  let referralId: string;
-  let nonce: number;
+  let claimedAddresses: string[] = [];
+  let referralIds: string[] = [];
+  let nonces: number[] = [];
   try {
     // Fetch data from the API
     const url = URL + destination + "/" + toAddress;
@@ -530,9 +536,13 @@ export async function calculateDeterministicAddress(
       throw new BitcoinAddressError("No addresses returned from API");
     }
 
-    claimedAddress = data.addresses[0].btc_address;
-    referralId = data.addresses[0].deposit_metadata.referral;
-    nonce = data.addresses[0].deposit_metadata.nonce;
+    data.addresses.forEach((address) => {
+      if (!address.deprecated || address.deprecated === undefined) {
+        claimedAddresses.push(address.btc_address);
+        referralIds.push(address.deposit_metadata.referral);
+        nonces.push(address.deposit_metadata.nonce);
+      }
+    });
   } catch (error: unknown) {
     if (error instanceof BitcoinAddressError) {
       throw error;
@@ -546,16 +556,22 @@ export async function calculateDeterministicAddress(
 
   const address = Buffer.from(toAddress.substring(2), "hex");
   const service = createAddressService(config);
-  const computedAddress = service.calculateDeterministicAddress(
-    chainId,
-    lbtcAddress,
-    address,
-    Buffer.from(referralId),
-    nonce,
-    blockchainType,
-  );
+  const len = claimedAddresses.length;
+  let computedAddresses: string[] = [];
+  for (let i = 0; i < len; i++) {
+    const computedAddress = service.calculateDeterministicAddress(
+      chainId,
+      lbtcAddress,
+      address,
+      Buffer.from(referralIds[i]),
+      nonces[i],
+      blockchainType,
+    );
 
-  return { computedAddress, claimedAddress };
+    computedAddresses.push(computedAddress);
+  }
+
+  return { computedAddresses, claimedAddresses, referralIds, nonces };
 }
 
 async function main() {
@@ -581,17 +597,27 @@ async function main() {
   }
 
   const toAddress = process.argv[3];
-  const { computedAddress, claimedAddress } =
+  const { computedAddresses, claimedAddresses, referralIds, nonces } =
     await calculateDeterministicAddress(blockchainType, toAddress);
 
-  if (computedAddress === claimedAddress) {
-    console.log("Addresses match!");
-  } else {
-    console.log("WARNING: Address mismatch!");
-  }
+  const len = computedAddresses.length;
+  for (let i = 0; i < len; i++) {
+    console.log(`Checking for address ${i}:`);
+    if (referralIds[i] !== undefined) {
+      console.log(`    partner code ${referralIds[i]}`);
+    }
+    if (nonces[i] !== undefined) {
+      console.log(`    and nonce ${nonces[i]}...`);
+    }
+    if (computedAddresses[i] === claimedAddresses[i]) {
+      console.log("Addresses match!");
+    } else {
+      console.log("WARNING: Address mismatch!");
+    }
 
-  console.log("Address fetched from API:", claimedAddress);
-  console.log("Address computed:", computedAddress);
+    console.log("Address fetched from API:", claimedAddresses[i]);
+    console.log("Address computed:", computedAddresses[i]);
+  }
 }
 
 main();
