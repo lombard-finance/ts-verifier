@@ -7,7 +7,7 @@ This library can be used by users of the Lombard Finance protocol to ensure that
 Assuming `git` is installed, you can download this repository with:
 
 ```bash
-git clone <>
+git clone https://github.com/lombard-finance/ts-verifier
 ```
 
 Then, navigate into the folder:
