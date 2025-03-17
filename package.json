@@ -1,4 +1,8 @@
 {
+  "name": "@lombard.finance/ts-verifier",
+  "description": "Lombard Deposit Address Verifier",
+  "version": "0.1.0",
+  "homepage": "/",
   "scripts": {
     "format": "prettier *.js \"*{.js,.ts}\" -w",
     "lint": "prettier *.js \"*{.js,.ts}\" --check"
