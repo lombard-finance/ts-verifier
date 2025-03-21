@@ -41,8 +41,11 @@ Possible options for blockchain are:
 The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this:
 
 ```bash
-$ ts-node verifier.ts ethereum 0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4
-Addresses match!
-Address fetched from API: bc1q29nrqh3cj5q5r0n7yjea6hezkrxhf6nyfv3afz
-Address computed: bc1q29nrqh3cj5q5r0n7yjea6hezkrxhf6nyfv3afz
+$ ts-node verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6
+Checking for address bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn:
+- partner code: lombard
+- nonce: 0
+Address fetched from API:       bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn
+Address computed:               bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn
+Addresses match! 
 ```
