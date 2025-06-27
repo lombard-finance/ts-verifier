@@ -20,6 +20,18 @@ async function main() {
     case "sui":
       blockchainType = SupportedBlockchains.Sui;
       break;
+    case "sonic":
+      blockchainType = SupportedBlockchains.Sonic;
+      break;
+    case "ink":
+      blockchainType = SupportedBlockchains.Ink;
+      break;
+    case "solana":
+      blockchainType = SupportedBlockchains.Solana;
+      break;
+    case "katana":
+      blockchainType = SupportedBlockchains.Katana;
+      break;
     default:
       throw new BitcoinAddressError(
         `Unrecognized destination network: ${type}`,
@@ -27,12 +39,12 @@ async function main() {
   }
 
   const toAddress = process.argv[3];
-  const { computedAddresses, claimedAddresses, referralIds, nonces } =
+  const { computedAddresses, expectedAddresses, referralIds, nonces } =
     await calculateDeterministicAddress(blockchainType, toAddress);
 
   const len = computedAddresses.length;
   for (let i = 0; i < len; i++) {
-    console.log(`Checking for address ${claimedAddresses[i]}:`);
+    console.log(`Checking for address ${expectedAddresses[i]}:`);
     if (referralIds[i] != undefined) {
       console.log(`- partner code: ${referralIds[i]}`);
     }
@@ -42,10 +54,10 @@ async function main() {
       console.log(`- nonce: 0`);
     }
 
-    console.log(`Address fetched from API:\t${claimedAddresses[i]}`);
+    console.log(`Address fetched from API:\t${expectedAddresses[i]}`);
     console.log(`Address computed:\t\t${computedAddresses[i]}`);
 
-    if (computedAddresses[i] === claimedAddresses[i]) {
+    if (computedAddresses[i] === expectedAddresses[i]) {
       console.log("Addresses match!");
     } else {
       console.log("WARNING: Address mismatch!");
