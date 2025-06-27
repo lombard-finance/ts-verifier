@@ -10,11 +10,13 @@
   "dependencies": {
     "@types/secp256k1": "^4.0.6",
     "bitcoinjs-lib": "^6.1.7",
+    "bs58": "^6.0.0",
     "prettier": "^3.5.3",
     "secp256k1": "^5.0.1",
     "typescript": "^5.8.2"
   },
   "devDependencies": {
+    "@types/bs58": "^5.0.0",
     "@types/node": "^22.13.10"
   }
 }

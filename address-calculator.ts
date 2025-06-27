@@ -4,6 +4,7 @@
 import * as crypto from "crypto";
 import * as secp256k1 from "secp256k1";
 import * as bitcoin from "bitcoinjs-lib";
+import bs58 from 'bs58';
 
 // Constants
 const MAINNET_PUBLIC_KEY = Buffer.from(
@@ -40,6 +41,18 @@ const SUI_CHAIN_ID = Buffer.from(
   "0100000000000000000000000000000000000000000000000000000035834a8a",
   "hex",
 );
+const SONIC_CHAIN_ID = Buffer.from(
+  "0000000000000000000000000000000000000000000000000000000000000092",
+  "hex",
+);
+const INK_CHAIN_ID = Buffer.from(
+  "000000000000000000000000000000000000000000000000000000000000def1",
+  "hex",
+);
+const SOLANA_CHAIN_ID = Buffer.from(
+  "02296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef0",
+  "hex",
+);
 
 // LBTC Contracts
 const ETHEREUM_LBTC_CONTRACT = Buffer.from(
@@ -58,6 +71,17 @@ const SUI_LBTC_CONTRACT = Buffer.from(
   "3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040",
   "hex",
 );
+const SONIC_LBTC_CONTRACT = Buffer.from(
+  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
+  "hex",
+);
+const INK_LBTC_CONTRACT = Buffer.from(
+  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
+  "hex",
+);
+const SOLANA_LBTC_CONTRACT = Buffer.from(
+  bs58.decode("LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek"),
+);
 
 // API
 const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/";
@@ -66,6 +90,7 @@ const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/";
 export enum BlockchainType {
   EVM = "evm",
   Sui = "sui",
+  Solana = "solana",
 }
 
 export enum SupportedBlockchains {
@@ -73,6 +98,9 @@ export enum SupportedBlockchains {
   Base = "base",
   BSC = "bsc",
   Sui = "sui",
+  Sonic = "sonic",
+  Ink = "ink",
+  Solana = "solana",
 }
 
 // Network Parameters
@@ -157,7 +185,7 @@ export function computeAuxDataV0(
   nonce: number,
   referrerId: Buffer | Uint8Array,
 ): Buffer {
-  return computeAuxData(DEPOSIT_AUX_V0, nonce, referrerId);
+  return computeAuxData(nonce, referrerId, DEPOSIT_AUX_V0);
 }
 
 /**
@@ -167,16 +195,16 @@ export function computeAuxDataV1(
   nonce: number,
   referrerId: Buffer | Uint8Array,
 ): Buffer {
-  return computeAuxData(DEPOSIT_AUX_V1, nonce, referrerId);
+  return computeAuxData(nonce, referrerId, DEPOSIT_AUX_V1);
 }
 
 /**
  * Compute v0 AuxData given a nonce, referrerId, and version
  */
 export function computeAuxData(
-  version: number,
   nonce: number,
   referrerId: Buffer | Uint8Array,
+  version: number,
 ): Buffer {
   if (referrerId.length > MAX_REFERRAL_ID_SIZE) {
     throw new BitcoinAddressError(
@@ -427,7 +455,7 @@ export class AddressService {
     // Compute aux data
     let auxData: Buffer;
     try {
-      auxData = computeAuxData(version, nonce, referralId);
+      auxData = computeAuxData(nonce, referralId, version);
     } catch (error) {
       throw new BitcoinAddressError(
         `Computing aux data for nonce=${nonce}, referal_id=${referralId.toString("hex")}: ${error}`,
@@ -512,35 +540,49 @@ export async function calculateDeterministicAddress(
   let lbtcAddress: Address;
   let destination: string;
   let blockchainType: BlockchainType;
-  let version: number;
+  let version: number = DEPOSIT_AUX_V0;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
       lbtcAddress = ETHEREUM_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_ETHEREUM";
       blockchainType = BlockchainType.EVM;
-      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
       lbtcAddress = BASE_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BASE";
       blockchainType = BlockchainType.EVM;
-      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
       lbtcAddress = BSC_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BSC";
       blockchainType = BlockchainType.EVM;
-      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
       lbtcAddress = SUI_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SUI";
       blockchainType = BlockchainType.Sui;
-      version = DEPOSIT_AUX_V0;
+      break;
+    case SupportedBlockchains.Sonic:
+      chainId = SONIC_CHAIN_ID;
+      lbtcAddress = SONIC_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_SONIC";
+      blockchainType = BlockchainType.EVM;
+      break;
+    case SupportedBlockchains.Ink:
+      chainId = INK_CHAIN_ID;
+      lbtcAddress = INK_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_INK";
+      blockchainType = BlockchainType.EVM;
+      break;
+    case SupportedBlockchains.Solana:
+      chainId = SOLANA_CHAIN_ID;
+      lbtcAddress = SOLANA_LBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_SOLANA";
+      blockchainType = BlockchainType.Solana;
       break;
     default:
       console.error("Unexpected destination chain:", chain);
