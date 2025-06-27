@@ -16,6 +16,7 @@ const SIGNET_PUBLIC_KEY = Buffer.from(
 );
 const DEPOSIT_AUX_TAG = "LombardDepositAux";
 const DEPOSIT_AUX_V0 = 0;
+const DEPOSIT_AUX_V1 = 1;
 const MAX_REFERRAL_ID_SIZE = 256;
 const SEGWIT_TWEAK_TAG = "SegwitTweak";
 const DEPOSIT_ADDR_TAG = "LombardDepositAddr";
@@ -156,10 +157,35 @@ export function computeAuxDataV0(
   nonce: number,
   referrerId: Buffer | Uint8Array,
 ): Buffer {
+  return computeAuxData(DEPOSIT_AUX_V0, nonce, referrerId);
+}
+
+/**
+ * Compute v1 AuxData given a nonce, referrerId, and version
+ */
+export function computeAuxDataV1(
+  nonce: number,
+  referrerId: Buffer | Uint8Array,
+): Buffer {
+  return computeAuxData(DEPOSIT_AUX_V1, nonce, referrerId);
+}
+
+/**
+ * Compute v0 AuxData given a nonce, referrerId, and version
+ */
+export function computeAuxData(
+  version: number,
+  nonce: number,
+  referrerId: Buffer | Uint8Array,
+): Buffer {
   if (referrerId.length > MAX_REFERRAL_ID_SIZE) {
     throw new BitcoinAddressError(
       `Wrong size for referrerId (got ${referrerId.length}, want not greater than ${MAX_REFERRAL_ID_SIZE})`,
     );
+  }
+
+  if (version > DEPOSIT_AUX_V1) {
+    throw new BitcoinAddressError("version is not supported");
   }
 
   const nonceBytes = Buffer.alloc(4);
@@ -168,7 +194,7 @@ export function computeAuxDataV0(
   const h = auxDepositHasher();
 
   // Version0
-  h.update(Buffer.from([DEPOSIT_AUX_V0]));
+  h.update(Buffer.from([version]));
   h.update(nonceBytes);
   h.update(Buffer.from(referrerId));
 
@@ -390,6 +416,7 @@ export class AddressService {
    * Calculate a deterministic address based on inputs
    */
   calculateDeterministicAddress(
+    version: number,
     chainId: LChainId,
     lbtcAddress: Address,
     toAddress: Address,
@@ -400,7 +427,7 @@ export class AddressService {
     // Compute aux data
     let auxData: Buffer;
     try {
-      auxData = computeAuxDataV0(nonce, referralId);
+      auxData = computeAuxData(version, nonce, referralId);
     } catch (error) {
       throw new BitcoinAddressError(
         `Computing aux data for nonce=${nonce}, referal_id=${referralId.toString("hex")}: ${error}`,
@@ -485,35 +512,39 @@ export async function calculateDeterministicAddress(
   let lbtcAddress: Address;
   let destination: string;
   let blockchainType: BlockchainType;
+  let version: number;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
       lbtcAddress = ETHEREUM_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_ETHEREUM";
       blockchainType = BlockchainType.EVM;
+      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
       lbtcAddress = BASE_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BASE";
       blockchainType = BlockchainType.EVM;
+      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
       lbtcAddress = BSC_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BSC";
       blockchainType = BlockchainType.EVM;
+      version = DEPOSIT_AUX_V0;
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
       lbtcAddress = SUI_LBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SUI";
       blockchainType = BlockchainType.Sui;
+      version = DEPOSIT_AUX_V0;
       break;
     default:
       console.error("Unexpected destination chain:", chain);
       throw new BitcoinAddressError(`Unexpected destination chain: ${chain}`);
-      break;
   }
 
   let claimedAddresses: string[] = [];
@@ -560,6 +591,7 @@ export async function calculateDeterministicAddress(
   let computedAddresses: string[] = [];
   for (let i = 0; i < len; i++) {
     const computedAddress = service.calculateDeterministicAddress(
+      version,
       chainId,
       lbtcAddress,
       address,
