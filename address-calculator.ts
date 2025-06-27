@@ -18,6 +18,7 @@ const SIGNET_PUBLIC_KEY = Buffer.from(
 const DEPOSIT_AUX_TAG = "LombardDepositAux";
 const DEPOSIT_AUX_V0 = 0;
 const DEPOSIT_AUX_V1 = 1;
+const SUPPORTED_VERSIONS = new Set([DEPOSIT_AUX_V0, DEPOSIT_AUX_V1]);
 const MAX_REFERRAL_ID_SIZE = 256;
 const SEGWIT_TWEAK_TAG = "SegwitTweak";
 const DEPOSIT_ADDR_TAG = "LombardDepositAddr";
@@ -53,35 +54,21 @@ const SOLANA_CHAIN_ID = Buffer.from(
   "02296998a6f8e2a784db5d9f95e18fc23f70441a1039446801089879b08c7ef0",
   "hex",
 );
+const KATANA_CHAIN_ID = Buffer.from(
+  "0x00000000000000000000000000000000000000000000000000000000000b67d2",
+  "hex",
+);
 
-// LBTC Contracts
-const ETHEREUM_LBTC_CONTRACT = Buffer.from(
-  "8236a87084f8B84306f72007F36F2618A5634494",
-  "hex",
-);
-const BASE_LBTC_CONTRACT = Buffer.from(
-  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
-  "hex",
-);
-const BSC_LBTC_CONTRACT = Buffer.from(
-  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
-  "hex",
-);
-const SUI_LBTC_CONTRACT = Buffer.from(
-  "3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040",
-  "hex",
-);
-const SONIC_LBTC_CONTRACT = Buffer.from(
-  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
-  "hex",
-);
-const INK_LBTC_CONTRACT = Buffer.from(
-  "ecAc9C5F704e954931349Da37F60E39f515c11c1",
-  "hex",
-);
-const SOLANA_LBTC_CONTRACT = Buffer.from(
-  bs58.decode("LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek"),
-);
+// Token Contracts
+const ETHEREUM_STLBTC_CONTRACT = "8236a87084f8B84306f72007F36F2618A5634494"
+const BASE_STLBTC_CONTRACT = "ecAc9C5F704e954931349Da37F60E39f515c11c1"
+const BSC_STLBTC_CONTRACT = "ecAc9C5F704e954931349Da37F60E39f515c11c1"
+const SUI_STLBTC_CONTRACT = "3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040"
+const SONIC_STLBTC_CONTRACT = "ecAc9C5F704e954931349Da37F60E39f515c11c1"
+const INK_STLBTC_CONTRACT = "ecAc9C5F704e954931349Da37F60E39f515c11c1"
+const SOLANA_STLBTC_CONTRACT = "LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek"
+const KATANA_STLBTC_CONTRACT = "0xecAc9C5F704e954931349Da37F60E39f515c11c1"
+const KATANA_LBTC_CONTRACT = "0xB0F70C0bD6FD87dbEb7C10dC692a2a6106817072"
 
 // API
 const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/";
@@ -101,6 +88,7 @@ export enum SupportedBlockchains {
   Sonic = "sonic",
   Ink = "ink",
   Solana = "solana",
+  Katana = "katana",
 }
 
 // Network Parameters
@@ -178,29 +166,6 @@ function auxDepositHasher(): crypto.Hash {
   return h;
 }
 
-/**
- * Compute v0 AuxData given a nonce and referrerId
- */
-export function computeAuxDataV0(
-  nonce: number,
-  referrerId: Buffer | Uint8Array,
-): Buffer {
-  return computeAuxData(nonce, referrerId, DEPOSIT_AUX_V0);
-}
-
-/**
- * Compute v1 AuxData given a nonce, referrerId, and version
- */
-export function computeAuxDataV1(
-  nonce: number,
-  referrerId: Buffer | Uint8Array,
-): Buffer {
-  return computeAuxData(nonce, referrerId, DEPOSIT_AUX_V1);
-}
-
-/**
- * Compute v0 AuxData given a nonce, referrerId, and version
- */
 export function computeAuxData(
   nonce: number,
   referrerId: Buffer | Uint8Array,
@@ -212,7 +177,7 @@ export function computeAuxData(
     );
   }
 
-  if (version > DEPOSIT_AUX_V1) {
+  if (!SUPPORTED_VERSIONS.has(version)) {
     throw new BitcoinAddressError("version is not supported");
   }
 
@@ -501,6 +466,8 @@ export interface DepositMetadata {
   to_blockchain: string;
   referral: string;
   nonce: number;
+  token_address: string;
+  aux_version: number;
 }
 
 export interface AddressInfo {
@@ -511,7 +478,7 @@ export interface AddressInfo {
   deprecated: boolean;
 }
 
-export interface ApiResponse {
+export interface AddressesResponse {
   addresses: AddressInfo[];
 }
 
@@ -523,9 +490,11 @@ export async function calculateDeterministicAddress(
   toAddress: string,
 ): Promise<{
   computedAddresses: string[];
-  claimedAddresses: string[];
+  expectedAddresses: string[];
   referralIds: string[];
   nonces: number[];
+  auxVersions: number[];
+  tokenAddresses: string[];
 }> {
   if (!toAddress.startsWith("0x")) {
     throw new BitcoinAddressError("Malformed toAddress");
@@ -537,61 +506,68 @@ export async function calculateDeterministicAddress(
   };
 
   let chainId: Buffer;
-  let lbtcAddress: Address;
+  let defaultTokenAddress: string;
   let destination: string;
   let blockchainType: BlockchainType;
-  let version: number = DEPOSIT_AUX_V0;
   switch (chain) {
     case SupportedBlockchains.Ethereum:
       chainId = ETHEREUM_CHAIN_ID;
-      lbtcAddress = ETHEREUM_LBTC_CONTRACT;
+      defaultTokenAddress = ETHEREUM_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_ETHEREUM";
       blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Base:
       chainId = BASE_CHAIN_ID;
-      lbtcAddress = BASE_LBTC_CONTRACT;
+      defaultTokenAddress = BASE_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BASE";
       blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.BSC:
       chainId = BSC_CHAIN_ID;
-      lbtcAddress = BSC_LBTC_CONTRACT;
+      defaultTokenAddress = BSC_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_BSC";
       blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Sui:
       chainId = SUI_CHAIN_ID;
-      lbtcAddress = SUI_LBTC_CONTRACT;
+      defaultTokenAddress = SUI_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SUI";
       blockchainType = BlockchainType.Sui;
       break;
     case SupportedBlockchains.Sonic:
       chainId = SONIC_CHAIN_ID;
-      lbtcAddress = SONIC_LBTC_CONTRACT;
+      defaultTokenAddress = SONIC_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SONIC";
       blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Ink:
       chainId = INK_CHAIN_ID;
-      lbtcAddress = INK_LBTC_CONTRACT;
+      defaultTokenAddress = INK_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_INK";
       blockchainType = BlockchainType.EVM;
       break;
     case SupportedBlockchains.Solana:
       chainId = SOLANA_CHAIN_ID;
-      lbtcAddress = SOLANA_LBTC_CONTRACT;
+      defaultTokenAddress = SOLANA_STLBTC_CONTRACT;
       destination = "DESTINATION_BLOCKCHAIN_SOLANA";
       blockchainType = BlockchainType.Solana;
+      break;
+    case SupportedBlockchains.Katana:
+      chainId = KATANA_CHAIN_ID;
+      defaultTokenAddress = KATANA_STLBTC_CONTRACT;
+      destination = "DESTINATION_BLOCKCHAIN_KATANA";
+      blockchainType = BlockchainType.EVM;
       break;
     default:
       console.error("Unexpected destination chain:", chain);
       throw new BitcoinAddressError(`Unexpected destination chain: ${chain}`);
   }
 
-  let claimedAddresses: string[] = [];
+  let expectedAddresses: string[] = [];
   let referralIds: string[] = [];
   let nonces: number[] = [];
+  let tokenAddresses: string[] = [];
+  let auxVersions: number[] = [];
   try {
     // Fetch data from the API
     const url = URL + destination + "/" + toAddress;
@@ -603,7 +579,7 @@ export async function calculateDeterministicAddress(
       );
     }
 
-    const data = (await response.json()) as ApiResponse;
+    const data = (await response.json()) as AddressesResponse;
 
     if (!data.addresses || data.addresses.length === 0) {
       throw new BitcoinAddressError("No addresses returned from API");
@@ -611,9 +587,11 @@ export async function calculateDeterministicAddress(
 
     data.addresses.forEach((address) => {
       if (!address.deprecated || address.deprecated === undefined) {
-        claimedAddresses.push(address.btc_address);
+        expectedAddresses.push(address.btc_address);
         referralIds.push(address.deposit_metadata.referral);
-        nonces.push(address.deposit_metadata.nonce);
+        nonces.push(address.deposit_metadata.nonce ?? 0);
+        auxVersions.push(address.deposit_metadata.aux_version ?? 0);
+        tokenAddresses.push(address.deposit_metadata.token_address ?? defaultTokenAddress);
       }
     });
   } catch (error: unknown) {
@@ -629,13 +607,21 @@ export async function calculateDeterministicAddress(
 
   const address = Buffer.from(toAddress.substring(2), "hex");
   const service = createAddressService(config);
-  const len = claimedAddresses.length;
+  const len = expectedAddresses.length;
   let computedAddresses: string[] = [];
   for (let i = 0; i < len; i++) {
+
+    let tokenAddress: Address;
+    if (blockchainType === BlockchainType.Solana) {
+      tokenAddress = Buffer.from(tokenAddresses[i])
+    } else {
+      tokenAddress = Buffer.from(tokenAddresses[i], "hex")
+    }
+
     const computedAddress = service.calculateDeterministicAddress(
-      version,
+      auxVersions[i],
       chainId,
-      lbtcAddress,
+      tokenAddress,
       address,
       Buffer.from(referralIds[i]),
       nonces[i],
@@ -645,5 +631,5 @@ export async function calculateDeterministicAddress(
     computedAddresses.push(computedAddress);
   }
 
-  return { computedAddresses, claimedAddresses, referralIds, nonces };
+  return { computedAddresses, expectedAddresses, referralIds, nonces, auxVersions, tokenAddresses };
 }

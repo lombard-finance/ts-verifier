@@ -40,6 +40,7 @@ Possible options for blockchain are:
 - `sonic`
 - `ink`
 - `solana`
+- `katana`
 
 The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this:
 
