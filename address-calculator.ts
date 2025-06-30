@@ -613,7 +613,7 @@ export async function calculateDeterministicAddress(
 
     let tokenAddress: Address;
     if (blockchainType === BlockchainType.Solana) {
-      tokenAddress = Buffer.from(tokenAddresses[i])
+      tokenAddress = Buffer.from(bs58.decode(tokenAddresses[i]))
     } else {
       tokenAddress = Buffer.from(tokenAddresses[i], "hex")
     }
