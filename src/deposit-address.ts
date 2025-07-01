@@ -9,7 +9,7 @@ import {
   LChainId,
   SupportedBlockchains,
 } from "./chain-id";
-import { fetchAddressMetadata } from "./api";
+import { AddressesResponse, fetchAddressMetadata } from "./api";
 import { computeAuxData } from "./aux-data";
 import {
   sha256,
@@ -36,6 +36,17 @@ export const SIGNET_PUBLIC_KEY = Buffer.from(
 export interface Config {
   network: "mainnet" | "signet";
   depositPublicKey: Buffer;
+}
+
+export interface AddressCalculationResult {
+  addresses: {
+    computed: string;
+    expected: string;
+    referralId: string;
+    nonce: number;
+    auxVersion: number;
+    tokenAddress: Address;
+  }[];
 }
 
 /**
@@ -225,14 +236,7 @@ export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
   toAddress: string,
   depositPublicKey: Buffer,
-): Promise<{
-  computedAddresses: string[];
-  expectedAddresses: string[];
-  referralIds: string[];
-  nonces: number[];
-  auxVersions: number[];
-  tokenAddresses: Address[];
-}> {
+): Promise<AddressCalculationResult> {
   let config: Config = {
     network: "mainnet",
     depositPublicKey: depositPublicKey,
@@ -245,28 +249,26 @@ export async function calculateDeterministicAddress(
 
   const addressData = await fetchAddressMetadata(chainConfig, toAddress);
   const service = createAddressService(config);
-  const len = addressData.btcAddresses.length;
-  let computedAddresses: string[] = [];
-  for (let i = 0; i < len; i++) {
-    const computedAddress = service.calculateDeterministicAddress(
-      addressData.auxVersions[i],
+  const addresses = addressData.addresses.map((addr) => {
+    const computed = service.calculateDeterministicAddress(
+      addr.auxVersion,
       chainConfig.chainId,
-      addressData.tokenAddresses[i],
-      addressData.toAddresses[i],
-      Buffer.from(addressData.referralIds[i]),
-      addressData.nonces[i],
+      addr.tokenAddress,
+      addr.toAddress,
+      Buffer.from(addr.referralId),
+      addr.nonce,
       chainConfig.ecosystem,
     );
 
-    computedAddresses.push(computedAddress);
-  }
+    return {
+      computed,
+      expected: addr.btcAddress,
+      referralId: addr.referralId,
+      nonce: addr.nonce,
+      auxVersion: addr.auxVersion,
+      tokenAddress: addr.tokenAddress,
+    };
+  });
 
-  return {
-    computedAddresses,
-    expectedAddresses: addressData.btcAddresses,
-    referralIds: addressData.referralIds,
-    nonces: addressData.nonces,
-    auxVersions: addressData.auxVersions,
-    tokenAddresses: addressData.tokenAddresses,
-  };
+  return { addresses };
 }

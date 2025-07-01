@@ -1,10 +1,11 @@
 import bs58 from "bs58";
-import { getAssociatedTokenAddress } from '@solana/spl-token';
-import { PublicKey } from '@solana/web3.js';
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import { Address, BlockchainConfig, Ecosystem } from "./chain-id";
 
 // For Solana we mint to token account address associated with a user address
-const SOLANA_MAINNET_MINT_ADDRESS = "LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY"
+const SOLANA_MAINNET_MINT_ADDRESS =
+  "LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY";
 
 // Get Addresses by Destination API
 const URL = "https://mainnet.prod.lombard.finance/api/v1/address/destination/";
@@ -42,12 +43,14 @@ export class APIError extends Error {
 }
 
 export interface AddressesResponse {
-  btcAddresses: string[];
-  toAddresses: Address[];
-  referralIds: string[];
-  nonces: number[];
-  auxVersions: number[];
-  tokenAddresses: Address[];
+  addresses: {
+    btcAddress: string;
+    toAddress: Address;
+    referralId: string;
+    nonce: number;
+    auxVersion: number;
+    tokenAddress: Address;
+  }[];
 }
 
 // Fetch address data from the Lombard API
@@ -83,36 +86,51 @@ export async function fetchAddressMetadata(
     const toAddresses = await Promise.all(
       nonDeprecatedAddresses.map(async (addr) => {
         if (chainConfig.ecosystem === Ecosystem.Solana) {
-          return await findSolanaAssociatedTokenAddress(addr.deposit_metadata.to_address, SOLANA_MAINNET_MINT_ADDRESS);
+          return await findSolanaAssociatedTokenAddress(
+            addr.deposit_metadata.to_address,
+            SOLANA_MAINNET_MINT_ADDRESS,
+          );
         } else {
-          return Buffer.from(trimHexPrefix(addr.deposit_metadata.to_address), "hex");
+          return Buffer.from(
+            trimHexPrefix(addr.deposit_metadata.to_address),
+            "hex",
+          );
         }
-      })
+      }),
     );
 
-    return {
-      btcAddresses: nonDeprecatedAddresses.map((addr) => addr.btc_address),
-      toAddresses,
-      referralIds: nonDeprecatedAddresses.map(
-        (addr) => addr.deposit_metadata.referral,
-      ),
-      nonces: nonDeprecatedAddresses.map(
-        (addr) => addr.deposit_metadata.nonce ?? 0,
-      ),
-      auxVersions: nonDeprecatedAddresses.map(
-        (addr) => addr.deposit_metadata.aux_version ?? 0,
-      ),
-      tokenAddresses: nonDeprecatedAddresses.map(
-        (addr) => {
-          const tokenAddr = addr.deposit_metadata.token_address ?? chainConfig.stlbtcAddress
-          if (chainConfig.ecosystem === Ecosystem.Solana) {
-            return Buffer.from(bs58.decode(tokenAddr));
-          } else {
-            return Buffer.from(trimHexPrefix(tokenAddr), "hex");
-          }
-        }
-      ),
-    };
+    const addresses = await Promise.all(
+      nonDeprecatedAddresses.map(async (addr) => {
+        const toAddr =
+          chainConfig.ecosystem === Ecosystem.Solana
+            ? await findSolanaAssociatedTokenAddress(
+                addr.deposit_metadata.to_address,
+                SOLANA_MAINNET_MINT_ADDRESS,
+              )
+            : Buffer.from(
+                trimHexPrefix(addr.deposit_metadata.to_address),
+                "hex",
+              );
+
+        const tokenAddr =
+          addr.deposit_metadata.token_address ?? chainConfig.stlbtcAddress;
+        const tokenAddress =
+          chainConfig.ecosystem === Ecosystem.Solana
+            ? Buffer.from(bs58.decode(tokenAddr))
+            : Buffer.from(trimHexPrefix(tokenAddr), "hex");
+
+        return {
+          btcAddress: addr.btc_address,
+          toAddress: toAddr,
+          referralId: addr.deposit_metadata.referral,
+          nonce: addr.deposit_metadata.nonce ?? 0,
+          auxVersion: addr.deposit_metadata.aux_version ?? 0,
+          tokenAddress: tokenAddress,
+        };
+      }),
+    );
+
+    return { addresses };
   } catch (error: unknown) {
     if (error instanceof APIError) {
       throw error;
@@ -129,11 +147,11 @@ function trimHexPrefix(hex: string): string {
 
 async function findSolanaAssociatedTokenAddress(
   addressBase58: string,
-  mintBase58: string
+  mintBase58: string,
 ): Promise<Buffer> {
   const address = new PublicKey(addressBase58);
   const mint = new PublicKey(mintBase58);
-  
+
   const ata = await getAssociatedTokenAddress(mint, address);
   return Buffer.from(ata.toBytes());
 }

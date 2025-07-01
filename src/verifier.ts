@@ -1,3 +1,4 @@
+import bs58 from "bs58";
 import { BitcoinAddressError } from "./bitcoin";
 import { SupportedBlockchains } from "./chain-id";
 import {
@@ -6,9 +7,9 @@ import {
 } from "./deposit-address";
 
 async function main() {
-  const type = process.argv[2];
+  const blockchain = process.argv[2];
   let blockchainType: SupportedBlockchains;
-  switch (type) {
+  switch (blockchain) {
     case "ethereum":
       blockchainType = SupportedBlockchains.Ethereum;
       break;
@@ -35,43 +36,46 @@ async function main() {
       break;
     default:
       throw new BitcoinAddressError(
-        `Unrecognized destination network: ${type}`,
+        `Unrecognized destination network: ${blockchain}`,
       );
   }
 
   const toAddress = process.argv[3];
-  const { computedAddresses, expectedAddresses, referralIds, nonces } =
-    await calculateDeterministicAddress(
-      blockchainType,
-      toAddress,
-      MAINNET_PUBLIC_KEY,
-    );
+  const results = await calculateDeterministicAddress(
+    blockchainType,
+    toAddress,
+    MAINNET_PUBLIC_KEY,
+  );
 
-  const len = computedAddresses.length;
-  for (let i = 0; i < len; i++) {
-    console.log(`Checking for address ${expectedAddresses[i]}:`);
-    if (referralIds[i] != undefined) {
-      console.log(`- partner code: ${referralIds[i]}`);
-    }
-    if (nonces[i] != undefined) {
-      console.log(`- nonce: ${nonces[i]}`);
+  results.addresses.forEach((addr, i) => {
+    console.log(`Address ${i + 1}: ${addr.expected}`);
+
+    console.log(`Metadata used:`);
+    console.log(`  - To Address: ${toAddress}`);
+    console.log(`  - Blockchain: ${blockchain}`);
+    console.log(`  - Partner Code: ${addr.referralId || "none"}`);
+    console.log(`  - Nonce: ${addr.nonce}`);
+    console.log(`  - Aux Version: ${addr.auxVersion}`);
+    const tokenAddressDisplay =
+      blockchain === "solana"
+        ? bs58.encode(addr.tokenAddress)
+        : `0x${addr.tokenAddress.toString("hex")}`;
+    console.log(`  - Token Address: ${tokenAddressDisplay}`);
+
+    if (addr.computed === addr.expected) {
+      console.log(`Addresses match!`);
     } else {
-      console.log(`- nonce: 0`);
+      console.log(`WARNING: Address mismatch!`);
+      console.log(`  - Expected: ${addr.expected}`);
+      console.log(`  - Computed: ${addr.computed}`);
     }
 
-    console.log(`Address fetched from API:\t${expectedAddresses[i]}`);
-    console.log(`Address computed:\t\t${computedAddresses[i]}`);
-
-    if (computedAddresses[i] === expectedAddresses[i]) {
-      console.log("Addresses match!");
-    } else {
-      console.log("WARNING: Address mismatch!");
-    }
-
-    if (i !== len - 1) {
+    if (i !== results.addresses.length - 1) {
+      console.log("");
+      console.log("-".repeat(60));
       console.log("");
     }
-  }
+  });
 }
 
 main();

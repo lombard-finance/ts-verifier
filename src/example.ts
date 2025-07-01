@@ -78,7 +78,7 @@ async function generateSegwitAddress() {
       console.log("Match:", match);
     }
   } catch (error) {
-    if (error instanceof BitcoinAddressError || error instanceof APIError ) {
+    if (error instanceof BitcoinAddressError || error instanceof APIError) {
       console.error("Bitcoin Address Generation Error:", error.message);
     } else {
       console.error("Unexpected Error:", error);
