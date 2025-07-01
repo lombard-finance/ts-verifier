@@ -28,7 +28,7 @@ yarn global add ts-node
 The library can be used very simply:
 
 ```bash
-ts-node verifier.ts <blockchain> <destination_address>
+ts-node src/verifier.ts <blockchain> <destination_address>
 ```
 
 Possible options for blockchain are:
@@ -42,10 +42,15 @@ Possible options for blockchain are:
 - `solana`
 - `katana`
 
+You can also run an example:
+```bash
+ts-node src/example.ts
+```
+
 The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this:
 
 ```bash
-$ ts-node verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6
+$ ts-node src/verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6
 Checking for address bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn:
 - partner code: lombard
 - nonce: 0
