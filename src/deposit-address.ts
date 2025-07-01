@@ -1,6 +1,7 @@
 // Bitcoin Segwit Address Generator
 // TypeScript implementation based on Go code
 
+import bs58 from "bs58";
 import * as crypto from "crypto";
 import {
   getBlockchainConfig,
@@ -42,10 +43,11 @@ export interface AddressCalculationResult {
   addresses: {
     computed: string;
     expected: string;
+    blockchain: string;
     referralId: string;
     nonce: number;
     auxVersion: number;
-    tokenAddress: Address;
+    tokenAddress: string;
   }[];
 }
 
@@ -260,13 +262,19 @@ export async function calculateDeterministicAddress(
       chainConfig.ecosystem,
     );
 
+    const tokenAddressDisplay =
+      chainConfig.ecosystem === Ecosystem.Solana
+        ? bs58.encode(addr.tokenAddress)
+        : `0x${addr.tokenAddress.toString("hex")}`;
+
     return {
       computed,
       expected: addr.btcAddress,
+      blockchain: chainConfig.name,
       referralId: addr.referralId,
       nonce: addr.nonce,
       auxVersion: addr.auxVersion,
-      tokenAddress: addr.tokenAddress,
+      tokenAddress: tokenAddressDisplay,
     };
   });
 

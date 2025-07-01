@@ -1,4 +1,3 @@
-import bs58 from "bs58";
 import { BitcoinAddressError } from "./bitcoin";
 import { SupportedBlockchains } from "./chain-id";
 import {
@@ -52,15 +51,11 @@ async function main() {
 
     console.log(`Metadata used:`);
     console.log(`  - To Address: ${toAddress}`);
-    console.log(`  - Blockchain: ${blockchain}`);
+    console.log(`  - Blockchain: ${addr.blockchain}`);
     console.log(`  - Partner Code: ${addr.referralId || "none"}`);
     console.log(`  - Nonce: ${addr.nonce}`);
     console.log(`  - Aux Version: ${addr.auxVersion}`);
-    const tokenAddressDisplay =
-      blockchain === "solana"
-        ? bs58.encode(addr.tokenAddress)
-        : `0x${addr.tokenAddress.toString("hex")}`;
-    console.log(`  - Token Address: ${tokenAddressDisplay}`);
+    console.log(`  - Token Address: ${addr.tokenAddress}`);
 
     if (addr.computed === addr.expected) {
       console.log(`Addresses match!`);
