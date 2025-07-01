@@ -125,7 +125,7 @@ export function calcTweakBytes(
 
       return depositTweak(tokenAddress, toAddress, chainId, auxData);
     case Ecosystem.Solana:
-      // TODO: Solana uses 32-byte address
+      // Solana uses 32-byte address
       if (tokenAddress.length !== 32) {
         throw new BitcoinAddressError(
           `Bad TokenAddress (got ${tokenAddress.length} bytes, expected 32)`,

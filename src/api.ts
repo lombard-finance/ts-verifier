@@ -112,12 +112,16 @@ export async function fetchAddressMetadata(
                 "hex",
               );
 
-        const tokenAddr =
-          addr.deposit_metadata.token_address ?? chainConfig.stlbtcAddress;
-        const tokenAddress =
-          chainConfig.ecosystem === Ecosystem.Solana
-            ? Buffer.from(bs58.decode(tokenAddr))
-            : Buffer.from(trimHexPrefix(tokenAddr), "hex");
+        let tokenAddress = chainConfig.stlbtc;
+        if (addr.deposit_metadata.token_address != undefined) {
+          tokenAddress =
+            chainConfig.ecosystem === Ecosystem.Solana
+              ? Buffer.from(bs58.decode(addr.deposit_metadata.token_address))
+              : Buffer.from(
+                  trimHexPrefix(addr.deposit_metadata.token_address),
+                  "hex",
+                );
+        }
 
         return {
           btcAddress: addr.btc_address,
