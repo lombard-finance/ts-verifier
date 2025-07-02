@@ -1,9 +1,6 @@
-import { BitcoinAddressError } from "./bitcoin";
+import { BitcoinAddressError, Networks, NetworkParams } from "./bitcoin";
 import { SupportedBlockchains } from "./chain-id";
-import {
-  calculateDeterministicAddress,
-  MAINNET_PUBLIC_KEY,
-} from "./deposit-address";
+import { calculateDeterministicAddress } from "./deposit-address";
 
 async function main() {
   const blockchain = process.argv[2];
@@ -40,10 +37,22 @@ async function main() {
   }
 
   const toAddress = process.argv[3];
+
+  const network =
+    process.argv[4] === "signet"
+      ? Networks.signet
+      : process.argv[4] === "mainnet" || !process.argv[4]
+        ? Networks.mainnet
+        : (() => {
+            throw new BitcoinAddressError(
+              `Unknown network: '${process.argv[4]}'`,
+            );
+          })();
+
   const results = await calculateDeterministicAddress(
     blockchainType,
     toAddress,
-    MAINNET_PUBLIC_KEY,
+    network,
   );
 
   results.addresses.forEach((addr, i) => {
