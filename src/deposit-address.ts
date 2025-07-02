@@ -3,14 +3,17 @@
 
 import bs58 from "bs58";
 import * as crypto from "crypto";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { PublicKey } from "@solana/web3.js";
 import {
-  getBlockchainConfig,
+  mainnetBlockchainConfigs,
+  gastaldBlockchainConfigs,
   Address,
   Ecosystem,
   LChainId,
   SupportedBlockchains,
 } from "./chain-id";
-import { AddressesResponse, fetchAddressMetadata } from "./api";
+import { fetchAddressMetadata, trimHexPrefix } from "./api";
 import { computeAuxData } from "./aux-data";
 import {
   sha256,
@@ -23,15 +26,23 @@ import { Tweaker } from "./tweaker";
 const DEPOSIT_ADDR_TAG = "LombardDepositAddr";
 const DEPRECATED_CHAIN_TAG = 0;
 
-// Root deposit public keys
+// Root deposit public keys for mainnet and Gastald testnet
 export const MAINNET_PUBLIC_KEY = Buffer.from(
   "033dcf7a68429b23a0396ca61c1ab243ccbbcc629ff04c59394458d6db5dd2bb15",
   "hex",
 );
-export const SIGNET_PUBLIC_KEY = Buffer.from(
+export const GASTALD_PUBLIC_KEY = Buffer.from(
   "025615e9748b945bad807b56d3a723578673d08566a4818510c0ba2123317414f8",
   "hex",
 );
+
+// For Solana we mint to token account address associated with a user address
+// Mint addresses for mainnet and Gastald testnet
+const SOLANA_MAINNET_MINT_ADDRESS =
+  "LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY";
+
+const SOLANA_GASTALD_MINT_ADDRESS =
+  "1BTCPX3qyFtBvhQvJaHntfzZfB8qcJmJXfoRnD3vAgh";
 
 // Config type
 export interface Config {
@@ -237,46 +248,80 @@ export function createAddressService(config: Config): AddressService {
 export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
   toAddress: string,
-  depositPublicKey: Buffer,
+  network: NetworkParams = Networks.mainnet,
 ): Promise<AddressCalculationResult> {
   let config: Config = {
     network: "mainnet",
-    depositPublicKey: depositPublicKey,
+    depositPublicKey:
+      network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY,
   };
 
-  const chainConfig = getBlockchainConfig(chain);
+  const chainConfigs =
+    network === Networks.mainnet
+      ? mainnetBlockchainConfigs
+      : gastaldBlockchainConfigs;
+
+  const chainConfig = chainConfigs.get(chain);
   if (!chainConfig) {
     throw new BitcoinAddressError(`Unsupported blockchain: ${chain}`);
   }
 
-  const addressData = await fetchAddressMetadata(chainConfig, toAddress);
+  const addressData = await fetchAddressMetadata(
+    chainConfig,
+    toAddress,
+    network,
+  );
+
   const service = createAddressService(config);
-  const addresses = addressData.addresses.map((addr) => {
-    const computed = service.calculateDeterministicAddress(
-      addr.auxVersion,
-      chainConfig.chainId,
-      addr.tokenAddress,
-      addr.toAddress,
-      Buffer.from(addr.referralId),
-      addr.nonce,
-      chainConfig.ecosystem,
-    );
+  const addresses = await Promise.all(
+    addressData.addresses.map(async (addr) => {
+      const toAddress =
+        chainConfig.ecosystem === Ecosystem.Solana
+          ? await findSolanaAssociatedTokenAddress(
+              addr.toAddress,
+              network === Networks.mainnet
+                ? SOLANA_MAINNET_MINT_ADDRESS
+                : SOLANA_GASTALD_MINT_ADDRESS,
+            )
+          : Buffer.from(trimHexPrefix(addr.toAddress), "hex");
 
-    const tokenAddressDisplay =
-      chainConfig.ecosystem === Ecosystem.Solana
-        ? bs58.encode(addr.tokenAddress)
-        : `0x${addr.tokenAddress.toString("hex")}`;
+      const computed = service.calculateDeterministicAddress(
+        addr.auxVersion,
+        chainConfig.chainId,
+        addr.tokenAddress,
+        toAddress,
+        Buffer.from(addr.referralId),
+        addr.nonce,
+        chainConfig.ecosystem,
+      );
 
-    return {
-      computed,
-      expected: addr.btcAddress,
-      blockchain: chainConfig.name,
-      referralId: addr.referralId,
-      nonce: addr.nonce,
-      auxVersion: addr.auxVersion,
-      tokenAddress: tokenAddressDisplay,
-    };
-  });
+      const tokenAddressDisplay =
+        chainConfig.ecosystem === Ecosystem.Solana
+          ? bs58.encode(addr.tokenAddress)
+          : `0x${addr.tokenAddress.toString("hex")}`;
+
+      return {
+        computed,
+        expected: addr.btcAddress,
+        blockchain: chainConfig.name,
+        referralId: addr.referralId,
+        nonce: addr.nonce,
+        auxVersion: addr.auxVersion,
+        tokenAddress: tokenAddressDisplay,
+      };
+    }),
+  );
 
   return { addresses };
+}
+
+async function findSolanaAssociatedTokenAddress(
+  addressBase58: string,
+  mintBase58: string,
+): Promise<Buffer> {
+  const address = new PublicKey(addressBase58);
+  const mint = new PublicKey(mintBase58);
+
+  const ata = await getAssociatedTokenAddress(mint, address);
+  return Buffer.from(ata.toBytes());
 }

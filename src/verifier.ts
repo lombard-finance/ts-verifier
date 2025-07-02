@@ -1,9 +1,6 @@
-import { BitcoinAddressError } from "./bitcoin";
+import { BitcoinAddressError, Networks } from "./bitcoin";
 import { SupportedBlockchains } from "./chain-id";
-import {
-  calculateDeterministicAddress,
-  MAINNET_PUBLIC_KEY,
-} from "./deposit-address";
+import { calculateDeterministicAddress } from "./deposit-address";
 
 async function main() {
   const blockchain = process.argv[2];
@@ -43,7 +40,7 @@ async function main() {
   const results = await calculateDeterministicAddress(
     blockchainType,
     toAddress,
-    MAINNET_PUBLIC_KEY,
+    Networks.mainnet,
   );
 
   results.addresses.forEach((addr, i) => {

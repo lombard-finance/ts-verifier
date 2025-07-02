@@ -1,9 +1,6 @@
-import {
-  calculateDeterministicAddress,
-  MAINNET_PUBLIC_KEY,
-} from "./deposit-address";
+import { calculateDeterministicAddress } from "./deposit-address";
 import { SupportedBlockchains } from "./chain-id";
-import { BitcoinAddressError } from "./bitcoin";
+import { BitcoinAddressError, Networks } from "./bitcoin";
 import { APIError } from "./api";
 
 // Example usage
@@ -20,7 +17,7 @@ async function generateSegwitAddress() {
       const match = await calculateDeterministicAddress(
         chain,
         toAddress,
-        MAINNET_PUBLIC_KEY,
+        Networks.mainnet,
       );
 
       console.log("Match:", match);
@@ -37,7 +34,7 @@ async function generateSegwitAddress() {
       const match = await calculateDeterministicAddress(
         chain,
         toAddress,
-        MAINNET_PUBLIC_KEY,
+        Networks.mainnet,
       );
 
       console.log("Match:", match);
@@ -54,7 +51,7 @@ async function generateSegwitAddress() {
       const match = await calculateDeterministicAddress(
         chain,
         toAddress,
-        MAINNET_PUBLIC_KEY,
+        Networks.mainnet,
       );
 
       console.log("Match:", match);
@@ -72,7 +69,7 @@ async function generateSegwitAddress() {
       const match = await calculateDeterministicAddress(
         chain,
         toAddress,
-        MAINNET_PUBLIC_KEY,
+        Networks.mainnet,
       );
 
       console.log("Match:", match);
