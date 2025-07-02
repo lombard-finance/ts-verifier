@@ -46,7 +46,7 @@ const SOLANA_GASTALD_MINT_ADDRESS =
 
 // Config type
 export interface Config {
-  network: "mainnet" | "signet";
+  network: NetworkParams;
   depositPublicKey: Buffer;
 }
 
@@ -165,26 +165,13 @@ export class AddressService {
   private network: NetworkParams;
 
   constructor(config: Config) {
-    let network: NetworkParams;
-
-    switch (config.network) {
-      case "mainnet":
-        network = Networks.mainnet;
-        break;
-      case "signet":
-        network = Networks.signet;
-        break;
-      default:
-        throw new BitcoinAddressError(`Unknown network: '${config.network}'`);
-    }
-
     try {
       this.tweaker = new Tweaker(config.depositPublicKey);
     } catch (error) {
       throw new BitcoinAddressError("Bad public deposit key");
     }
 
-    this.network = network;
+    this.network = config.network;
   }
 
   /**
@@ -251,7 +238,7 @@ export async function calculateDeterministicAddress(
   network: NetworkParams = Networks.mainnet,
 ): Promise<AddressCalculationResult> {
   let config: Config = {
-    network: "mainnet",
+    network: network,
     depositPublicKey:
       network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY,
   };

@@ -55,7 +55,7 @@ export interface AddressesResponse {
 export async function fetchAddressMetadata(
   chainConfig: BlockchainConfig,
   toAddress: string,
-  network: NetworkParams = Networks.mainnet,
+  network: NetworkParams,
 ): Promise<AddressesResponse> {
   try {
     const url = `${network === Networks.mainnet ? MAINNET_URL : GASTALD_URL}${chainConfig.name}/${toAddress}`;
