@@ -3,6 +3,7 @@
 
 import bs58 from "bs58";
 import * as crypto from "crypto";
+import * as secp256k1 from "secp256k1";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import {
@@ -27,14 +28,10 @@ const DEPOSIT_ADDR_TAG = "LombardDepositAddr";
 const DEPRECATED_CHAIN_TAG = 0;
 
 // Root deposit public keys for mainnet and Gastald testnet
-export const MAINNET_PUBLIC_KEY = Buffer.from(
-  "033dcf7a68429b23a0396ca61c1ab243ccbbcc629ff04c59394458d6db5dd2bb15",
-  "hex",
-);
-export const GASTALD_PUBLIC_KEY = Buffer.from(
-  "025615e9748b945bad807b56d3a723578673d08566a4818510c0ba2123317414f8",
-  "hex",
-);
+const MAINNET_PUBLIC_KEY =
+  "043dcf7a68429b23a0396ca61c1ab243ccbbcc629ff04c59394458d6db5dd2bb159e0b7a71ef07247b59a0a21b1f1eaee61a40064ade423e926f38550065a43587";
+const GASTALD_PUBLIC_KEY =
+  "045615e9748b945bad807b56d3a723578673d08566a4818510c0ba2123317414f8068660c0398d4ecb7b02c805af42ce77bb700f18c92142ed2559abdeab1deb5a";
 
 // For Solana we mint to token account address associated with a user address
 // Mint addresses for mainnet and Gastald testnet
@@ -239,8 +236,7 @@ export async function calculateDeterministicAddress(
 ): Promise<AddressCalculationResult> {
   let config: Config = {
     network: network,
-    depositPublicKey:
-      network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY,
+    depositPublicKey: getCompressedPubKey(network),
   };
 
   const chainConfigs =
@@ -300,6 +296,15 @@ export async function calculateDeterministicAddress(
   );
 
   return { addresses };
+}
+
+function getCompressedPubKey(network: NetworkParams): Buffer<ArrayBufferLike> {
+  const uncompressedHex =
+    network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY;
+  const uncompressedPubKey = Buffer.from(uncompressedHex, "hex");
+
+  // Compress it using secp256k1 library
+  return Buffer.from(secp256k1.publicKeyConvert(uncompressedPubKey, true));
 }
 
 async function findSolanaAssociatedTokenAddress(
