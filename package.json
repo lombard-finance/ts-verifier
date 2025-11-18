@@ -1,19 +1,35 @@
 {
   "name": "@lombard.finance/ts-verifier",
   "description": "Lombard Deposit Address Verifier",
-  "version": "0.1.0",
-  "homepage": "/",
+  "version": "0.1.2",
+  "license": "MIT",
   "scripts": {
+    "build": "yarn types && vite build && yarn build-types",
+    "build-types": "tsc -b tsconfig.build.json",
+    "types": "tsc --noEmit",
     "format": "prettier *.js \"*{.js,.ts}\" -w",
     "lint": "prettier *.js \"*{.js,.ts}\" --check"
   },
+  "engines": {
+    "node": ">= 22.14.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "type": "module",
+  "types": "./src/index.ts",
   "dependencies": {
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.2",
     "bitcoinjs-lib": "^6.1.7",
     "bs58": "^6.0.0",
     "secp256k1": "^5.0.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
   },
   "devDependencies": {
     "@types/bs58": "^5.0.0",
