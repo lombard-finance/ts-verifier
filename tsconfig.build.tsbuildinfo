@@ -1,0 +1,1 @@
+{"root":["./src/api.ts","./src/aux-data.ts","./src/bitcoin.ts","./src/chain-id.ts","./src/deposit-address.ts","./src/example.ts","./src/index.ts","./src/segwit-tweak.ts","./src/tweaker.ts","./src/verifier.ts","./src/vite-env.d.ts"],"version":"5.8.3"}
