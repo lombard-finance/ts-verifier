@@ -1,0 +1,2 @@
+# Restrict any changes to GitHub workflow files without approval. This is required to protect sensitive NPM token.
+/.github/workflows/ @megatron757 @fruit37 @le0n229
