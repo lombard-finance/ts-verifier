@@ -45,8 +45,8 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
-      - name: Build packages
-        run: yarn turbo run build --filter=@lombard.finance/ts-verifier
+      - name: Build package
+        run: yarn build
 
       - name: Configure registry
         working-directory: ./
