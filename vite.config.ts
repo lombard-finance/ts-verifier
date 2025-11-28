@@ -18,6 +18,12 @@ export default defineConfig({
           entryFileNames: '[name].js',
           chunkFileNames: '[name].js',
         },
+        {
+          format: 'commonjs',
+          dir: 'dist',
+          entryFileNames: '[name].cjs',
+          chunkFileNames: '[name].cjs',
+        },
       ],
     },
   },
