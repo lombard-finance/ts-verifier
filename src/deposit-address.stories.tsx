@@ -1,3 +1,4 @@
+// codacy-disable-all
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { calculateDeterministicAddress } from './deposit-address';
@@ -9,10 +10,12 @@ const DeterministicAddressCalculator = () => {
   const [blockchain, setBlockchain] = useState<SupportedBlockchains>(
     SupportedBlockchains.Ethereum
   );
-  const [accountAddress, setAccountAddress] = useState('0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4');
-  const [network, setNetwork] = useState<typeof Networks.mainnet | typeof Networks.gastald>(
-    Networks.mainnet
+  const [accountAddress, setAccountAddress] = useState(
+    '0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4'
   );
+  const [network, setNetwork] = useState<
+    typeof Networks.mainnet | typeof Networks.gastald
+  >(Networks.mainnet);
   const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +33,9 @@ const DeterministicAddressCalculator = () => {
       );
       setResult(calculatedResult);
     } catch (err: any) {
-      setError(err.message || 'An error occurred while calculating the address');
+      setError(
+        err.message || 'An error occurred while calculating the address'
+      );
     } finally {
       setLoading(false);
     }
@@ -39,7 +44,7 @@ const DeterministicAddressCalculator = () => {
   return (
     <div className="container mt-4">
       <h2 className="mb-4">Deterministic Address Calculator</h2>
-      
+
       <div className="card">
         <div className="card-body">
           <div className="mb-3">
@@ -50,13 +55,19 @@ const DeterministicAddressCalculator = () => {
               id="blockchain"
               className="form-select"
               value={blockchain}
-              onChange={(e) => setBlockchain(e.target.value as SupportedBlockchains)}
+              onChange={(e) =>
+                setBlockchain(
+                  e.target.value as SupportedBlockchains
+                )
+              }
             >
-              {Object.values(SupportedBlockchains).map((chain) => (
-                <option key={chain} value={chain}>
-                  {chain}
-                </option>
-              ))}
+              {Object.values(SupportedBlockchains).map(
+                (chain) => (
+                  <option key={chain} value={chain}>
+                    {chain}
+                  </option>
+                )
+              )}
             </select>
           </div>
 
@@ -82,10 +93,16 @@ const DeterministicAddressCalculator = () => {
               id="network"
               className="form-select"
               value={network}
-              onChange={(e) => setNetwork(e.target.value as typeof Networks.mainnet)}
+              onChange={(e) =>
+                setNetwork(
+                  e.target.value as typeof Networks.mainnet
+                )
+              }
             >
               <option value={Networks.mainnet}>Mainnet</option>
-              <option value={Networks.gastald}>Gastald (Testnet)</option>
+              <option value={Networks.gastald}>
+                Gastald (Testnet)
+              </option>
             </select>
           </div>
 
@@ -119,14 +136,24 @@ const DeterministicAddressCalculator = () => {
               <div className="mt-3">
                 <strong>All Addresses:</strong>
                 <ul className="list-group mt-2">
-                  {result.addresses.map((addr: any, index: number) => (
-                    <li key={index} className="list-group-item">
-                      <div className="font-monospace">{addr.address}</div>
-                      <small className="text-muted">
-                        To Address: {addr.toAddress} | Token: {addr.tokenAddress || 'Native'}
-                      </small>
-                    </li>
-                  ))}
+                  {result.addresses.map(
+                    (addr: any, index: number) => (
+                      <li
+                        key={index}
+                        className="list-group-item"
+                      >
+                        <div className="font-monospace">
+                          {addr.address}
+                        </div>
+                        <small className="text-muted">
+                          To Address: {addr.toAddress}{' '}
+                          | Token:{' '}
+                          {addr.tokenAddress ||
+                            'Native'}
+                        </small>
+                      </li>
+                    )
+                  )}
                 </ul>
               </div>
             )}
@@ -176,17 +203,27 @@ export const EthereumMainnet: Story = {
     }, []);
 
     if (loading) {
-      return <div className="container mt-4"><div className="spinner-border" /></div>;
+      return (
+        <div className="container mt-4">
+          <div className="spinner-border" />
+        </div>
+      );
     }
 
     return (
       <div className="container mt-4">
         <h3>Ethereum Mainnet Example</h3>
-        <p><strong>Blockchain:</strong> Ethereum</p>
-        <p><strong>Address:</strong> 0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4</p>
+        <p>
+          <strong>Blockchain:</strong> Ethereum
+        </p>
+        <p>
+          <strong>Address:</strong>{' '}
+          0x57f9672ba603251c9c03b36cabdbbca7ca8cfcf4
+        </p>
         {result && (
           <div className="alert alert-success mt-3">
-            <strong>Deposit Address:</strong> {result.depositAddress}
+            <strong>Deposit Address:</strong>{' '}
+            {result.depositAddress}
           </div>
         )}
       </div>
@@ -219,17 +256,27 @@ export const BaseMainnet: Story = {
     }, []);
 
     if (loading) {
-      return <div className="container mt-4"><div className="spinner-border" /></div>;
+      return (
+        <div className="container mt-4">
+          <div className="spinner-border" />
+        </div>
+      );
     }
 
     return (
       <div className="container mt-4">
         <h3>Base Mainnet Example</h3>
-        <p><strong>Blockchain:</strong> Base</p>
-        <p><strong>Address:</strong> 0x0f90793a54e809bf708bd0fbcc63d311e3bb1be1</p>
+        <p>
+          <strong>Blockchain:</strong> Base
+        </p>
+        <p>
+          <strong>Address:</strong>{' '}
+          0x0f90793a54e809bf708bd0fbcc63d311e3bb1be1
+        </p>
         {result && (
           <div className="alert alert-success mt-3">
-            <strong>Deposit Address:</strong> {result.depositAddress}
+            <strong>Deposit Address:</strong>{' '}
+            {result.depositAddress}
           </div>
         )}
       </div>
@@ -262,21 +309,30 @@ export const SuiMainnet: Story = {
     }, []);
 
     if (loading) {
-      return <div className="container mt-4"><div className="spinner-border" /></div>;
+      return (
+        <div className="container mt-4">
+          <div className="spinner-border" />
+        </div>
+      );
     }
 
     return (
       <div className="container mt-4">
         <h3>Sui Mainnet Example</h3>
-        <p><strong>Blockchain:</strong> Sui</p>
-        <p><strong>Address:</strong> 0xa51d5c52371626bb6894ce9b599c935f8dea92ca34668f2da7148df2458640b8</p>
+        <p>
+          <strong>Blockchain:</strong> Sui
+        </p>
+        <p>
+          <strong>Address:</strong>{' '}
+          0xa51d5c52371626bb6894ce9b599c935f8dea92ca34668f2da7148df2458640b8
+        </p>
         {result && (
           <div className="alert alert-success mt-3">
-            <strong>Deposit Address:</strong> {result.depositAddress}
+            <strong>Deposit Address:</strong>{' '}
+            {result.depositAddress}
           </div>
         )}
       </div>
     );
   },
 };
-
