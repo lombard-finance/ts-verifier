@@ -1,4 +1,5 @@
-// codacy-disable-all
+/* eslint-disable */
+// @ts-nocheck
 import React, { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react';
 import { calculateDeterministicAddress } from './deposit-address';
