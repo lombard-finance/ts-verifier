@@ -2,7 +2,7 @@
 // TypeScript implementation based on Go code
 
 import bs58 from "bs58";
-import * as crypto from "crypto";
+import * as crypto from "crypto-browserify";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { PublicKey } from "@solana/web3.js";
 import {

@@ -10,6 +10,7 @@ export default defineConfig({
       entry: path.resolve(__dirname, 'src/index.ts'),
     },
     rollupOptions: {
+      external: [],
       output: [
         {
           format: 'es',
@@ -24,7 +25,6 @@ export default defineConfig({
           chunkFileNames: '[name].cjs',
         },
       ],
-      plugins: [],
     },
   },
 });
