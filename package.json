@@ -36,6 +36,9 @@
     "buffer": "^6.0.3",
     "crypto-browserify": "^3.12.0",
     "stream-browserify": "^3.0.0",
+    "events": "^3.3.0",
+    "process": "^0.11.10",
+    "util": "^0.12.5",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   },
@@ -55,12 +58,9 @@
     "@types/react-dom": "^19.2.3",
     "@types/secp256k1": "^4.0.6",
     "bootstrap": "^5.3.8",
-    "events": "^3.3.0",
     "prettier": "^3.5.3",
-    "process": "^0.11.10",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "storybook": "^8.2.9",
-    "util": "^0.12.5"
+    "storybook": "^8.2.9"
   }
 }
