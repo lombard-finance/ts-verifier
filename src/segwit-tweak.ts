@@ -1,5 +1,5 @@
 import * as crypto from "crypto";
-import * as secp256k1 from "secp256k1";
+import * as secp256k1 from "@noble/secp256k1";
 import { sha256, BitcoinAddressError } from "./bitcoin";
 
 const TWEAK_SIZE = 32;
@@ -16,7 +16,13 @@ export function tweakPublicKey(
 
   // Add the private key & tweak scalar (G*tweak + publicKey)
   try {
-    return Buffer.from(secp256k1.publicKeyTweakAdd(publicKey, tweakScalar));
+    // Convert Buffer to Uint8Array for @noble/secp256k1
+    const pubKeyPoint = secp256k1.Point.fromHex(publicKey);
+    const tweakPoint = secp256k1.Point.fromPrivateKey(tweakScalar);
+    const tweakedPoint = pubKeyPoint.add(tweakPoint);
+    
+    // Convert back to Buffer (compressed format)
+    return Buffer.from(tweakedPoint.toRawBytes(true));
   } catch (error) {
     throw new BitcoinAddressError(`Failed to tweak public key: ${error}`);
   }
