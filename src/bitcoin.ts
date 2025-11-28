@@ -1,5 +1,5 @@
 import * as bitcoin from "bitcoinjs-lib";
-import * as crypto from "crypto";
+import * as crypto from "crypto-browserify";
 
 // Network Parameters
 export interface NetworkParams {

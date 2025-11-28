@@ -1,4 +1,4 @@
-import * as crypto from "crypto";
+import * as crypto from "crypto-browserify";
 import { sha256, BitcoinAddressError } from "./bitcoin";
 
 const DEPOSIT_AUX_TAG = "LombardDepositAux";

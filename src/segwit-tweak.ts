@@ -1,4 +1,4 @@
-import * as crypto from "crypto";
+import * as crypto from "crypto-browserify";
 import * as secp256k1 from "@noble/secp256k1";
 import { sha256, BitcoinAddressError } from "./bitcoin";
 
