@@ -7,26 +7,21 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 // Setup global polyfills for browser environment
 if (typeof window !== 'undefined') {
-    (window as any).Buffer = Buffer;
-    (window as any).global = window;
-    (window as any).process = process;
+  (window as any).Buffer = Buffer;
+  (window as any).global = window;
+  (window as any).process = process;
 }
 
-// Also ensure globalThis has these available
-if (typeof globalThis !== 'undefined') {
-    (globalThis as any).Buffer = Buffer;
-    (globalThis as any).process = process;
-}
 
 const preview: Preview = {
-    parameters: {
-        controls: {
-            matchers: {
-                color: /(background|color)$/i,
-                date: /Date$/i,
-            },
-        },
+  parameters: {
+    controls: {
+      matchers: {
+        color: /(background|color)$/i,
+        date: /Date$/i,
+      },
     },
+  },
 };
 
 export default preview;
