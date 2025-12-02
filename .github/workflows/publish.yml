@@ -57,3 +57,17 @@ jobs:
       - name: Publish
         working-directory: ./
         run: npm publish
+
+      - name: Send Slack message for SDK publish
+        uses: slackapi/slack-github-action@v2.1.1
+        env: 
+          WORKFLOW_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            blocks:
+              - type: "section"
+                text:
+                  type: "mrkdwn"
+                  text: "ts-verifier has been published to NPM\n${{ env.WORKFLOW_URL }}"
