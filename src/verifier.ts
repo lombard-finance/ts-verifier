@@ -42,6 +42,9 @@ async function main() {
     case "avalanche":
       blockchainType = SupportedBlockchains.Avalanche;
       break;
+    case "starknet":
+      blockchainType = SupportedBlockchains.Starknet;
+      break;
     default:
       throw new BitcoinAddressError(
         `Unrecognized destination network: ${blockchain}`,

@@ -45,6 +45,7 @@ Possible options for blockchain are:
 - `stable`
 - `megaeth`
 - `avalanche`
+- `starknet`
 
 You can also run an example:
 ```bash

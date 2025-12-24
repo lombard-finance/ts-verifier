@@ -150,6 +150,21 @@ export function calcTweakBytes(
       }
 
       return depositTweak(tokenAddress, toAddress, chainId, auxData);
+    case Ecosystem.Starknet:
+      // Starknet uses 32-byte felt252 address
+      if (tokenAddress.length !== 32) {
+        throw new BitcoinAddressError(
+          `Bad TokenAddress (got ${tokenAddress.length} bytes, expected 32)`,
+        );
+      }
+
+      if (toAddress.length !== 32) {
+        throw new BitcoinAddressError(
+          `Bad ToAddress (got ${toAddress.length} bytes, expected 32)`,
+        );
+      }
+
+      return depositTweak(tokenAddress, toAddress, chainId, auxData);
     default:
       throw new BitcoinAddressError(
         `Unsupported blockchain type: ${blockchainType}`,

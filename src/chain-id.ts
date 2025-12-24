@@ -11,6 +11,7 @@ export enum Ecosystem {
   EVM = "evm",
   Sui = "sui",
   Solana = "solana",
+  Starknet = "starknet",
 }
 
 export enum SupportedBlockchains {
@@ -26,6 +27,7 @@ export enum SupportedBlockchains {
   Stable = "stable",
   MegaETH = "megaeth",
   Avalanche = "avalanche",
+  Starknet = "starknet",
 }
 
 // Blockchain configuration map for mainnet
@@ -217,6 +219,23 @@ export const mainnetBlockchainConfigs = new Map([
       ecosystem: Ecosystem.EVM,
     },
   ],
+
+  [
+    SupportedBlockchains.Starknet,
+    {
+      chainId: Buffer.from(
+        "04000000000000000000000000000000000000000000000000534e5f4d41494e",
+        "hex",
+      ),
+      stlbtc: Buffer.from(
+        "05b1886d0f844ab930fc0ee066f1655a873437f15a5d2c41ee3e884fd5299976",
+        "hex",
+      ),
+      nativeLbtc: null,
+      name: "DESTINATION_BLOCKCHAIN_STARKNET",
+      ecosystem: Ecosystem.Starknet,
+    },
+  ],
 ]);
 
 // Blockchain configuration map for Gastald testnet
@@ -358,6 +377,23 @@ export const gastaldBlockchainConfigs = new Map([
       ),
       name: "DESTINATION_BLOCKCHAIN_AVALANCHE",
       ecosystem: Ecosystem.EVM,
+    },
+  ],
+
+  [
+    SupportedBlockchains.Starknet,
+    {
+      chainId: Buffer.from(
+        "04000000000000000000000000000000000000000000534e5f5345504f4c4941",
+        "hex",
+      ),
+      stlbtc: Buffer.from(
+        "063b7b5c8b114ebd5b9602fbd5d0ffd2cc3a598f1d91c6904cc0997cd8fea760",
+        "hex",
+      ),
+      nativeLbtc: null,
+      name: "DESTINATION_BLOCKCHAIN_STARKNET",
+      ecosystem: Ecosystem.Starknet,
     },
   ],
 ]);
