@@ -30,6 +30,18 @@ async function main() {
     case "katana":
       blockchainType = SupportedBlockchains.Katana;
       break;
+    case "monad":
+      blockchainType = SupportedBlockchains.Monad;
+      break;
+    case "stable":
+      blockchainType = SupportedBlockchains.Stable;
+      break;
+    case "megaeth":
+      blockchainType = SupportedBlockchains.MegaETH;
+      break;
+    case "avalanche":
+      blockchainType = SupportedBlockchains.Avalanche;
+      break;
     default:
       throw new BitcoinAddressError(
         `Unrecognized destination network: ${blockchain}`,

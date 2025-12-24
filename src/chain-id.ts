@@ -22,6 +22,10 @@ export enum SupportedBlockchains {
   Ink = "ink",
   Solana = "solana",
   Katana = "katana",
+  Monad = "monad",
+  Stable = "stable",
+  MegaETH = "megaeth",
+  Avalanche = "avalanche",
 }
 
 // Blockchain configuration map for mainnet
@@ -145,6 +149,74 @@ export const mainnetBlockchainConfigs = new Map([
       ecosystem: Ecosystem.EVM,
     },
   ],
+
+  [
+    SupportedBlockchains.Monad,
+    {
+      chainId: Buffer.from(
+        "000000000000000000000000000000000000000000000000000000000000008f",
+        "hex",
+      ),
+      stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
+      nativeLbtc: Buffer.from(
+        "B0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
+        "hex",
+      ),
+      name: "DESTINATION_BLOCKCHAIN_MONAD",
+      ecosystem: Ecosystem.EVM,
+    },
+  ],
+
+  [
+    SupportedBlockchains.Stable,
+    {
+      chainId: Buffer.from(
+        "00000000000000000000000000000000000000000000000000000000000003dc",
+        "hex",
+      ),
+      stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
+      nativeLbtc: Buffer.from(
+        "B0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
+        "hex",
+      ),
+      name: "DESTINATION_BLOCKCHAIN_STABLE",
+      ecosystem: Ecosystem.EVM,
+    },
+  ],
+
+  [
+    SupportedBlockchains.MegaETH,
+    {
+      chainId: Buffer.from(
+        "00000000000000000000000000000000000000000000000000000000000010e6",
+        "hex",
+      ),
+      stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
+      nativeLbtc: Buffer.from(
+        "B0F70C0bD6FD87dbEb7C10dC692a2a6106817072",
+        "hex",
+      ),
+      name: "DESTINATION_BLOCKCHAIN_MEGAETH",
+      ecosystem: Ecosystem.EVM,
+    },
+  ],
+
+  [
+    SupportedBlockchains.Avalanche,
+    {
+      chainId: Buffer.from(
+        "000000000000000000000000000000000000000000000000000000000000a86a",
+        "hex",
+      ),
+      stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
+      nativeLbtc: Buffer.from(
+        "85D1D52e11290F174444d21C2a167bEDBE36e4d2",
+        "hex",
+      ),
+      name: "DESTINATION_BLOCKCHAIN_AVALANCHE",
+      ecosystem: Ecosystem.EVM,
+    },
+  ],
 ]);
 
 // Blockchain configuration map for Gastald testnet
@@ -153,11 +225,14 @@ export const gastaldBlockchainConfigs = new Map([
     SupportedBlockchains.Ethereum,
     {
       chainId: Buffer.from(
-        "0000000000000000000000000000000000000000000000000000000000004268",
+        "0000000000000000000000000000000000000000000000000000000000aa36a7",
         "hex",
       ),
-      stlbtc: Buffer.from("38A13AB20D15ffbE5A7312d2336EF1552580a4E2", "hex"),
-      nativeLbtc: null,
+      stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
+      nativeLbtc: Buffer.from(
+        "20eA7b8ABb4B583788F1DFC738C709a2d9675681",
+        "hex",
+      ),
       name: "DESTINATION_BLOCKCHAIN_ETHEREUM",
       ecosystem: Ecosystem.EVM,
     },
@@ -265,6 +340,23 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       name: "DESTINATION_BLOCKCHAIN_KATANA",
+      ecosystem: Ecosystem.EVM,
+    },
+  ],
+
+  [
+    SupportedBlockchains.Avalanche,
+    {
+      chainId: Buffer.from(
+        "000000000000000000000000000000000000000000000000000000000000a869",
+        "hex",
+      ),
+      stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
+      nativeLbtc: Buffer.from(
+        "41BCd71e7C92b1c8dDe53037F9b2c4AA2058b1cB",
+        "hex",
+      ),
+      name: "DESTINATION_BLOCKCHAIN_AVALANCHE",
       ecosystem: Ecosystem.EVM,
     },
   ],

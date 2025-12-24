@@ -230,6 +230,81 @@ export function createAddressService(config: Config): AddressService {
 }
 
 /**
+ * Parameters for offline address computation
+ */
+export interface ComputeAddressParams {
+  /** Target blockchain */
+  chain: SupportedBlockchains;
+  /** Destination address on target chain (hex for EVM/Sui, base58 for Solana) */
+  toAddress: string;
+  /** Token address on target chain (hex for EVM/Sui, base58 for Solana) */
+  tokenAddress: string;
+  /** Partner/referral code */
+  referralId: string;
+  /** Nonce value */
+  nonce: number;
+  /** Aux data version */
+  auxVersion: number;
+  /** Bitcoin network (mainnet or signet) */
+  network?: NetworkParams;
+}
+
+/**
+ * Compute a deterministic Bitcoin deposit address without API calls.
+ * Use this for fully offline verification when you have all parameters.
+ */
+export async function computeAddress(
+  params: ComputeAddressParams,
+): Promise<string> {
+  const network = params.network ?? Networks.mainnet;
+
+  const config: Config = {
+    network: network,
+    depositPublicKey:
+      network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY,
+  };
+
+  const chainConfigs =
+    network === Networks.mainnet
+      ? mainnetBlockchainConfigs
+      : gastaldBlockchainConfigs;
+
+  const chainConfig = chainConfigs.get(params.chain);
+  if (!chainConfig) {
+    throw new BitcoinAddressError(`Unsupported blockchain: ${params.chain}`);
+  }
+
+  // Parse token address based on ecosystem
+  const tokenAddressBuffer =
+    chainConfig.ecosystem === Ecosystem.Solana
+      ? Buffer.from(bs58.decode(params.tokenAddress))
+      : Buffer.from(trimHexPrefix(params.tokenAddress), "hex");
+
+  // Parse destination address based on ecosystem
+  const toAddressBuffer =
+    chainConfig.ecosystem === Ecosystem.Solana
+      ? await findSolanaAssociatedTokenAddress(
+          params.toAddress,
+          network === Networks.mainnet
+            ? SOLANA_MAINNET_MINT_ADDRESS
+            : SOLANA_GASTALD_MINT_ADDRESS,
+        )
+      : Buffer.from(trimHexPrefix(params.toAddress), "hex");
+
+  const service = createAddressService(config);
+
+  return service.calculateDeterministicAddress(
+    params.auxVersion,
+    chainConfig.chainId,
+    tokenAddressBuffer,
+    toAddressBuffer,
+    Buffer.from(params.referralId),
+    params.nonce,
+    chainConfig.ecosystem,
+  );
+}
+
+/**
  * Main function for calculating a deterministic address
  */
 export async function calculateDeterministicAddress(
@@ -262,7 +337,27 @@ export async function calculateDeterministicAddress(
   const service = createAddressService(config);
   const addresses = await Promise.all(
     addressData.addresses.map(async (addr) => {
-      const toAddress =
+      // Security check: verify API response matches user-provided address
+      const addressesMatch =
+        chainConfig.ecosystem === Ecosystem.Solana
+          ? addr.toAddress === toAddress // Solana: case-sensitive base58
+          : trimHexPrefix(addr.toAddress).toLowerCase() ===
+            trimHexPrefix(toAddress).toLowerCase(); // EVM/Sui: case-insensitive hex
+
+      if (!addressesMatch) {
+        throw new BitcoinAddressError(
+          `API returned mismatched to_address: expected ${toAddress}, got ${addr.toAddress}`,
+        );
+      }
+
+      // Security check: verify API response matches user-provided blockchain
+      if (addr.toBlockchain !== chainConfig.name) {
+        throw new BitcoinAddressError(
+          `API returned mismatched to_blockchain: expected ${chainConfig.name}, got ${addr.toBlockchain}`,
+        );
+      }
+
+      const toAddressBuffer =
         chainConfig.ecosystem === Ecosystem.Solana
           ? await findSolanaAssociatedTokenAddress(
               addr.toAddress,
@@ -276,7 +371,7 @@ export async function calculateDeterministicAddress(
         addr.auxVersion,
         chainConfig.chainId,
         addr.tokenAddress,
-        toAddress,
+        toAddressBuffer,
         Buffer.from(addr.referralId),
         addr.nonce,
         chainConfig.ecosystem,
