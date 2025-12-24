@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { computeAddress } from "./deposit-address";
+import { DepositAddressVerifier } from "./deposit-address";
 import { SupportedBlockchains } from "./chain-id";
 import { Networks } from "./bitcoin";
 
-describe("computeAddress (offline)", () => {
+describe("DepositAddressVerifier.computeOffline", () => {
   it("should compute correct BTC address for Ethereum", async () => {
-    const address = await computeAddress({
+    const address = await DepositAddressVerifier.computeOffline({
       chain: SupportedBlockchains.Ethereum,
       toAddress: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
       tokenAddress: "0x8236a87084f8B84306f72007F36F2618A5634494",
@@ -28,11 +28,14 @@ describe("computeAddress (offline)", () => {
       network: Networks.mainnet,
     };
 
-    const lombardAddr = await computeAddress({
+    const lombardAddr = await DepositAddressVerifier.computeOffline({
       ...baseParams,
       referralId: "lombard",
     });
-    const okxAddr = await computeAddress({ ...baseParams, referralId: "okx" });
+    const okxAddr = await DepositAddressVerifier.computeOffline({
+      ...baseParams,
+      referralId: "okx",
+    });
 
     expect(lombardAddr).toBe("bc1q24ens7l06vt8p6qqw3zvfmyh6ky0csxa7nwhcd");
     expect(okxAddr).toBe("bc1qaqaz88s7h55acxkt0jmzc4ey6gpt5pwe3e0k8y");
@@ -49,14 +52,20 @@ describe("computeAddress (offline)", () => {
       network: Networks.mainnet,
     };
 
-    const nonce0 = await computeAddress({ ...baseParams, nonce: 0 });
-    const nonce1 = await computeAddress({ ...baseParams, nonce: 1 });
+    const nonce0 = await DepositAddressVerifier.computeOffline({
+      ...baseParams,
+      nonce: 0,
+    });
+    const nonce1 = await DepositAddressVerifier.computeOffline({
+      ...baseParams,
+      nonce: 1,
+    });
 
     expect(nonce0).not.toBe(nonce1);
   });
 
   it("should handle addresses without 0x prefix", async () => {
-    const withPrefix = await computeAddress({
+    const withPrefix = await DepositAddressVerifier.computeOffline({
       chain: SupportedBlockchains.Ethereum,
       toAddress: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
       tokenAddress: "0x8236a87084f8B84306f72007F36F2618A5634494",
@@ -65,7 +74,7 @@ describe("computeAddress (offline)", () => {
       auxVersion: 0,
     });
 
-    const withoutPrefix = await computeAddress({
+    const withoutPrefix = await DepositAddressVerifier.computeOffline({
       chain: SupportedBlockchains.Ethereum,
       toAddress: "0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
       tokenAddress: "8236a87084f8B84306f72007F36F2618A5634494",

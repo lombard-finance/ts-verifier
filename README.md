@@ -101,16 +101,18 @@ This package can also be used as an npm dependency:
 npm install @lombard.finance/ts-verifier
 ```
 
-### Verify with API
+### Verify with API (Online)
+
+Fetches deposit metadata from Lombard API and verifies addresses match:
 
 ```typescript
-import { calculateDeterministicAddress, SupportedBlockchains, Networks } from "@lombard.finance/ts-verifier";
+import { DepositAddressVerifier, SupportedBlockchains, Networks } from "@lombard.finance/ts-verifier";
 
-const result = await calculateDeterministicAddress(
-  SupportedBlockchains.Ethereum,
-  "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
-  Networks.mainnet,
-);
+const result = await DepositAddressVerifier.verifyOnline({
+  chain: SupportedBlockchains.Ethereum,
+  address: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
+  network: Networks.mainnet, // optional, defaults to mainnet
+});
 
 result.addresses.forEach((addr) => {
   if (addr.computed === addr.expected) {
@@ -123,19 +125,19 @@ result.addresses.forEach((addr) => {
 
 ### Offline Verification
 
-For fully offline verification without trusting the API, use `computeAddress` with all parameters provided manually:
+For fully offline verification without API calls, use `computeOffline` with all parameters:
 
 ```typescript
-import { computeAddress, SupportedBlockchains, Networks } from "@lombard.finance/ts-verifier";
+import { DepositAddressVerifier, SupportedBlockchains, Networks } from "@lombard.finance/ts-verifier";
 
-const btcAddress = await computeAddress({
+const btcAddress = await DepositAddressVerifier.computeOffline({
   chain: SupportedBlockchains.Ethereum,
   toAddress: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
   tokenAddress: "0x8236a87084f8B84306f72007F36F2618A5634494",
   referralId: "lombard",
   nonce: 0,
   auxVersion: 0,
-  network: Networks.mainnet,
+  network: Networks.mainnet, // optional, defaults to mainnet
 });
 
 console.log(btcAddress); // bc1q24ens7l06vt8p6qqw3zvfmyh6ky0csxa7nwhcd
