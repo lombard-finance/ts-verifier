@@ -6,7 +6,8 @@ import { Networks } from "./bitcoin";
 // Mock the API module
 vi.mock("./api", () => ({
   fetchAddressMetadata: vi.fn(),
-  trimHexPrefix: (hex: string) => (hex.startsWith("0x") ? hex.substring(2) : hex),
+  trimHexPrefix: (hex: string) =>
+    hex.startsWith("0x") ? hex.substring(2) : hex,
 }));
 
 import { fetchAddressMetadata } from "./api";
@@ -143,7 +144,8 @@ describe("calculateDeterministicAddress", () => {
 
     it("should throw error when Solana address differs only in case (case-sensitive)", async () => {
       const userAddress = "9Yb3kJXMMHUN9ry1w7UTFETe1zuM2pGzM66d4aBjtMCh";
-      const differentCaseAddress = "9yb3kJXMMHUN9ry1w7UTFETe1zuM2pGzM66d4aBjtMCh";
+      const differentCaseAddress =
+        "9yb3kJXMMHUN9ry1w7UTFETe1zuM2pGzM66d4aBjtMCh";
 
       vi.mocked(fetchAddressMetadata).mockResolvedValue({
         addresses: [

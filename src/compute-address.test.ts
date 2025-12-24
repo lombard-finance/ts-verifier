@@ -28,7 +28,10 @@ describe("computeAddress (offline)", () => {
       network: Networks.mainnet,
     };
 
-    const lombardAddr = await computeAddress({ ...baseParams, referralId: "lombard" });
+    const lombardAddr = await computeAddress({
+      ...baseParams,
+      referralId: "lombard",
+    });
     const okxAddr = await computeAddress({ ...baseParams, referralId: "okx" });
 
     expect(lombardAddr).toBe("bc1q24ens7l06vt8p6qqw3zvfmyh6ky0csxa7nwhcd");
