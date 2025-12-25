@@ -1,7 +1,7 @@
 {
   "name": "@lombard.finance/ts-verifier",
   "description": "Lombard Deposit Address Verifier",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "license": "MIT",
   "scripts": {
     "build": "yarn types && vite build && yarn build-types",
@@ -9,6 +9,8 @@
     "types": "tsc --noEmit",
     "format": "prettier *.js \"*{.js,.ts}\" -w",
     "lint": "prettier *.js \"*{.js,.ts}\" --check",
+    "test": "vitest run",
+    "test:watch": "vitest watch",
     "storybook": "storybook dev -p 6006"
   },
   "engines": {
@@ -63,6 +65,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "storybook": "^8.2.9",
-    "vite-plugin-node-polyfills": "^0.24.0"
+    "vite-plugin-node-polyfills": "^0.24.0",
+    "vitest": "^4.0.16"
   }
 }

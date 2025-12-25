@@ -12,6 +12,7 @@ import {
   Ecosystem,
   LChainId,
   SupportedBlockchains,
+  BlockchainConfig,
 } from "./chain-id";
 import { fetchAddressMetadata, trimHexPrefix } from "./api";
 import { computeAuxData } from "./aux-data";
@@ -44,13 +45,10 @@ const SOLANA_MAINNET_MINT_ADDRESS =
 const SOLANA_GASTALD_MINT_ADDRESS =
   "1BTCPX3qyFtBvhQvJaHntfzZfB8qcJmJXfoRnD3vAgh";
 
-// Config type
-export interface Config {
-  network: NetworkParams;
-  depositPublicKey: Buffer;
-}
-
-export interface AddressCalculationResult {
+/**
+ * Result of online verification
+ */
+export interface AddressVerificationResult {
   addresses: {
     computed: string;
     expected: string;
@@ -63,252 +61,346 @@ export interface AddressCalculationResult {
 }
 
 /**
- * DepositTweak Compute the tweak bytes for a deposit address.
- *
- * This is generally defined as
- *
- *	taggedHash( AuxData || DeprecatedChainTag || LChainId || LBTCAddress || WalletAddress )
- *
- * where:
- * - 'taggedHash' is a sha256 instance as returned by 'depositHasher()'
- * - 'AuxData' is a 32-byte value encoding chain-agnostic auxiliary data
- * - 'DeprecatedChainTag' is the zero byte previously used to differentiate among chains
- * - 'LChainId' is a 32 bytes big-endian unique identifier of the chain, internally defined by Lombard
- * - 'TokenAddress' and 'ToAddress' are byte arrays representing the respective addresses on the selected chain
+ * Parameters for online verification
  */
-export function depositTweak(
-  tokenAddress: Buffer,
-  toAddress: Buffer,
-  chainId: Buffer | Uint8Array,
-  auxData: Buffer | Uint8Array,
-): Buffer {
-  const tag = sha256(Buffer.from(DEPOSIT_ADDR_TAG));
-  const h = crypto.createHash("sha256");
-  h.update(tag);
-  h.update(tag);
-  h.update(Buffer.from(auxData));
-  h.update(Buffer.from([DEPRECATED_CHAIN_TAG]));
-  h.update(Buffer.from(chainId));
-  h.update(tokenAddress);
-  h.update(toAddress);
-  return h.digest();
+export interface VerifyOnlineParams {
+  /** Target blockchain */
+  chain: SupportedBlockchains;
+  /** Destination address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
+  toAddress: string;
+  /** Bitcoin network (mainnet or gastald). Defaults to mainnet */
+  network?: NetworkParams;
 }
 
 /**
- * Calculate tweak bytes for a given request
+ * Parameters for offline address computation
  */
-export function calcTweakBytes(
-  blockchainType: Ecosystem,
-  chainId: Uint8Array,
-  toAddress: Address,
-  tokenAddress: Address,
-  auxData: Uint8Array | Buffer,
-): Buffer {
-  switch (blockchainType) {
-    case Ecosystem.EVM:
-      // EVM chain uses 20-byte address
-      if (tokenAddress.length !== 20) {
-        throw new BitcoinAddressError(
-          `Bad TokenAddress (got ${tokenAddress.length} bytes, expected 20)`,
-        );
-      }
-
-      if (toAddress.length !== 20) {
-        throw new BitcoinAddressError(
-          `Bad ToAddress (got ${toAddress.length} bytes, expected 20)`,
-        );
-      }
-
-      return depositTweak(tokenAddress, toAddress, chainId, auxData);
-    case Ecosystem.Sui:
-      // Sui uses 32-byte address
-      if (tokenAddress.length !== 32) {
-        throw new BitcoinAddressError(
-          `Bad TokenAddress (got ${tokenAddress.length} bytes, expected 32)`,
-        );
-      }
-
-      if (toAddress.length !== 32) {
-        throw new BitcoinAddressError(
-          `Bad ToAddress (got ${toAddress.length} bytes, expected 32)`,
-        );
-      }
-
-      return depositTweak(tokenAddress, toAddress, chainId, auxData);
-    case Ecosystem.Solana:
-      // Solana uses 32-byte address
-      if (tokenAddress.length !== 32) {
-        throw new BitcoinAddressError(
-          `Bad TokenAddress (got ${tokenAddress.length} bytes, expected 32)`,
-        );
-      }
-
-      if (toAddress.length !== 32) {
-        throw new BitcoinAddressError(
-          `Bad ToAddress (got ${toAddress.length} bytes, expected 32)`,
-        );
-      }
-
-      return depositTweak(tokenAddress, toAddress, chainId, auxData);
-    default:
-      throw new BitcoinAddressError(
-        `Unsupported blockchain type: ${blockchainType}`,
-      );
-  }
+export interface ComputeOfflineParams {
+  /** Target blockchain */
+  chain: SupportedBlockchains;
+  /** Destination address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
+  toAddress: string;
+  /** Token address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
+  tokenAddress: string;
+  /** Partner/referral code */
+  referralId: string;
+  /** Nonce value */
+  nonce: number;
+  /** Aux data version */
+  auxVersion: number;
+  /** Bitcoin network (mainnet or gastald). Defaults to mainnet */
+  network?: NetworkParams;
 }
 
 /**
- * Service class for calculating deterministic Bitcoin addresses
+ * Deposit address verifier with static methods for online and offline verification
  */
-export class AddressService {
-  private tweaker: Tweaker;
-  private network: NetworkParams;
+export class DepositAddressVerifier {
+  /**
+   * Verify deposit addresses by fetching metadata from API and computing locally.
+   * Includes security checks to validate API response matches user-provided data.
+   */
+  static async verifyOnline(
+    params: VerifyOnlineParams,
+  ): Promise<AddressVerificationResult> {
+    const { network, chainConfig, tweaker } = this.getContext(
+      params.chain,
+      params.network,
+    );
 
-  constructor(config: Config) {
-    try {
-      this.tweaker = new Tweaker(config.depositPublicKey);
-    } catch (error) {
-      throw new BitcoinAddressError("Bad public deposit key");
-    }
+    const addressData = await fetchAddressMetadata(
+      chainConfig,
+      params.toAddress,
+      network,
+    );
 
-    this.network = config.network;
+    const addresses = await Promise.all(
+      addressData.addresses.map(async (addr) => {
+        this.validateApiResponse(addr, params.toAddress, chainConfig);
+
+        const toAddressBuffer = await this.parseToAddress(
+          addr.toAddress,
+          chainConfig.ecosystem,
+          network,
+        );
+
+        const computed = this.deriveAddress(
+          tweaker,
+          network,
+          chainConfig,
+          addr.tokenAddress,
+          toAddressBuffer,
+          addr.referralId,
+          addr.nonce,
+          addr.auxVersion,
+        );
+
+        return {
+          computed,
+          expected: addr.btcAddress,
+          blockchain: chainConfig.name,
+          referralId: addr.referralId,
+          nonce: addr.nonce,
+          auxVersion: addr.auxVersion,
+          tokenAddress: this.formatTokenAddress(
+            addr.tokenAddress,
+            chainConfig.ecosystem,
+          ),
+        };
+      }),
+    );
+
+    return { addresses };
   }
 
   /**
-   * Calculate a deterministic address based on inputs
+   * Compute a deterministic Bitcoin deposit address without API calls.
+   * Use this for fully offline verification when you have all parameters.
    */
-  calculateDeterministicAddress(
-    version: number,
-    chainId: LChainId,
-    lbtcAddress: Address,
-    toAddress: Address,
-    referralId: Buffer | Uint8Array,
+  static async computeOffline(params: ComputeOfflineParams): Promise<string> {
+    const { network, chainConfig, tweaker } = this.getContext(
+      params.chain,
+      params.network,
+    );
+
+    const tokenAddressBuffer = this.parseTokenAddress(
+      params.tokenAddress,
+      chainConfig.ecosystem,
+    );
+
+    const toAddressBuffer = await this.parseToAddress(
+      params.toAddress,
+      chainConfig.ecosystem,
+      network,
+    );
+
+    return this.deriveAddress(
+      tweaker,
+      network,
+      chainConfig,
+      tokenAddressBuffer,
+      toAddressBuffer,
+      params.referralId,
+      params.nonce,
+      params.auxVersion,
+    );
+  }
+
+  /**
+   * Get common context: resolved network, chain config, and tweaker
+   */
+  private static getContext(
+    chain: SupportedBlockchains,
+    network?: NetworkParams,
+  ): {
+    network: NetworkParams;
+    chainConfig: BlockchainConfig;
+    tweaker: Tweaker;
+  } {
+    const resolvedNetwork = network ?? Networks.mainnet;
+
+    const chainConfigs =
+      resolvedNetwork === Networks.mainnet
+        ? mainnetBlockchainConfigs
+        : gastaldBlockchainConfigs;
+
+    const chainConfig = chainConfigs.get(chain);
+    if (!chainConfig) {
+      throw new BitcoinAddressError(`Unsupported blockchain: ${chain}`);
+    }
+
+    const publicKey =
+      resolvedNetwork === Networks.mainnet
+        ? MAINNET_PUBLIC_KEY
+        : GASTALD_PUBLIC_KEY;
+    const tweaker = new Tweaker(publicKey);
+
+    return { network: resolvedNetwork, chainConfig, tweaker };
+  }
+
+  /**
+   * Validate API response matches user-provided data
+   */
+  private static validateApiResponse(
+    addr: { toAddress: string; toBlockchain: string },
+    expectedAddress: string,
+    chainConfig: BlockchainConfig,
+  ): void {
+    // Security check: verify API response matches user-provided address
+    const addressesMatch =
+      chainConfig.ecosystem === Ecosystem.Solana
+        ? addr.toAddress === expectedAddress // Solana: case-sensitive base58
+        : trimHexPrefix(addr.toAddress).toLowerCase() ===
+          trimHexPrefix(expectedAddress).toLowerCase(); // EVM/Sui/Starknet: case-insensitive hex
+
+    if (!addressesMatch) {
+      throw new BitcoinAddressError(
+        `API returned mismatched to_address: expected ${expectedAddress}, got ${addr.toAddress}`,
+      );
+    }
+
+    // Security check: verify API response matches user-provided blockchain
+    if (addr.toBlockchain !== chainConfig.name) {
+      throw new BitcoinAddressError(
+        `API returned mismatched to_blockchain: expected ${chainConfig.name}, got ${addr.toBlockchain}`,
+      );
+    }
+  }
+
+  /**
+   * Parse token address to buffer based on ecosystem
+   */
+  private static parseTokenAddress(
+    address: string,
+    ecosystem: Ecosystem,
+  ): Buffer {
+    return ecosystem === Ecosystem.Solana
+      ? Buffer.from(bs58.decode(address))
+      : Buffer.from(trimHexPrefix(address), "hex");
+  }
+
+  /**
+   * Format token address for display
+   */
+  private static formatTokenAddress(
+    address: Buffer,
+    ecosystem: Ecosystem,
+  ): string {
+    return ecosystem === Ecosystem.Solana
+      ? bs58.encode(address)
+      : `0x${address.toString("hex")}`;
+  }
+
+  /**
+   * Parse destination address to buffer based on ecosystem
+   */
+  private static async parseToAddress(
+    address: string,
+    ecosystem: Ecosystem,
+    network: NetworkParams,
+  ): Promise<Buffer> {
+    if (ecosystem === Ecosystem.Solana) {
+      return this.findSolanaAssociatedTokenAddress(
+        address,
+        network === Networks.mainnet
+          ? SOLANA_MAINNET_MINT_ADDRESS
+          : SOLANA_GASTALD_MINT_ADDRESS,
+      );
+    }
+    return Buffer.from(trimHexPrefix(address), "hex");
+  }
+
+  /**
+   * Find Solana Associated Token Address
+   */
+  private static async findSolanaAssociatedTokenAddress(
+    addressBase58: string,
+    mintBase58: string,
+  ): Promise<Buffer> {
+    const address = new PublicKey(addressBase58);
+    const mint = new PublicKey(mintBase58);
+    const ata = await getAssociatedTokenAddress(mint, address);
+    return Buffer.from(ata.toBytes());
+  }
+
+  /**
+   * Derive Bitcoin deposit address from parameters
+   */
+  private static deriveAddress(
+    tweaker: Tweaker,
+    network: NetworkParams,
+    chainConfig: BlockchainConfig,
+    tokenAddress: Buffer,
+    toAddress: Buffer,
+    referralId: string,
     nonce: number,
-    blockchainType: Ecosystem,
+    auxVersion: number,
   ): string {
     // Compute aux data
-    let auxData: Buffer;
-    try {
-      auxData = computeAuxData(nonce, referralId, version);
-    } catch (error) {
-      throw new BitcoinAddressError(
-        `Computing aux data for nonce=${nonce}, referal_id=${referralId.toString("hex")}: ${error}`,
-      );
-    }
+    const auxData = computeAuxData(nonce, Buffer.from(referralId), auxVersion);
 
     // Calculate tweak bytes
-    let tweakBytes: Buffer;
-    try {
-      tweakBytes = calcTweakBytes(
-        blockchainType,
-        chainId,
-        toAddress,
-        lbtcAddress,
-        auxData,
-      );
-    } catch (error) {
+    const tweakBytes = this.calcTweakBytes(
+      chainConfig.ecosystem,
+      chainConfig.chainId,
+      toAddress,
+      tokenAddress,
+      auxData,
+    );
+
+    // Derive segwit address
+    const { address } = tweaker.deriveSegwit(tweakBytes, network);
+    return address;
+  }
+
+  /**
+   * Compute the deposit tweak hash
+   */
+  private static depositTweak(
+    tokenAddress: Buffer,
+    toAddress: Buffer,
+    chainId: Buffer | Uint8Array,
+    auxData: Buffer | Uint8Array,
+  ): Buffer {
+    const tag = sha256(Buffer.from(DEPOSIT_ADDR_TAG));
+    const h = crypto.createHash("sha256");
+    h.update(tag);
+    h.update(tag);
+    h.update(Buffer.from(auxData));
+    h.update(Buffer.from([DEPRECATED_CHAIN_TAG]));
+    h.update(Buffer.from(chainId));
+    h.update(tokenAddress);
+    h.update(toAddress);
+    return h.digest();
+  }
+
+  /**
+   * Calculate tweak bytes with address length validation
+   */
+  private static calcTweakBytes(
+    ecosystem: Ecosystem,
+    chainId: LChainId,
+    toAddress: Address,
+    tokenAddress: Address,
+    auxData: Buffer,
+  ): Buffer {
+    const expectedLength = ecosystem === Ecosystem.EVM ? 20 : 32;
+
+    if (tokenAddress.length !== expectedLength) {
       throw new BitcoinAddressError(
-        `Computing tweakBytes for deterministic address: ${error}`,
+        `Bad TokenAddress (got ${tokenAddress.length} bytes, expected ${expectedLength})`,
       );
     }
 
-    // Derive segwit address
-    try {
-      const { address } = this.tweaker.deriveSegwit(tweakBytes, this.network);
-      return address;
-    } catch (error) {
-      throw new BitcoinAddressError(`Deriving segwit address: ${error}`);
+    if (toAddress.length !== expectedLength) {
+      throw new BitcoinAddressError(
+        `Bad ToAddress (got ${toAddress.length} bytes, expected ${expectedLength})`,
+      );
     }
+
+    return this.depositTweak(tokenAddress, toAddress, chainId, auxData);
   }
 }
 
-/**
- * Create a new address service from a configuration
- */
-export function createAddressService(config: Config): AddressService {
-  return new AddressService(config);
-}
+// =============================================================================
+// Deprecated exports for backward compatibility
+// =============================================================================
+
+/** @deprecated Use DepositAddressVerifier.verifyOnline() instead */
+export interface AddressCalculationResult extends AddressVerificationResult {}
 
 /**
- * Main function for calculating a deterministic address
+ * @deprecated Use DepositAddressVerifier.verifyOnline() instead.
+ * This function is kept for backward compatibility and will be removed in a future version.
  */
 export async function calculateDeterministicAddress(
   chain: SupportedBlockchains,
   toAddress: string,
   network: NetworkParams = Networks.mainnet,
 ): Promise<AddressCalculationResult> {
-  let config: Config = {
-    network: network,
-    depositPublicKey:
-      network === Networks.mainnet ? MAINNET_PUBLIC_KEY : GASTALD_PUBLIC_KEY,
-  };
-
-  const chainConfigs =
-    network === Networks.mainnet
-      ? mainnetBlockchainConfigs
-      : gastaldBlockchainConfigs;
-
-  const chainConfig = chainConfigs.get(chain);
-  if (!chainConfig) {
-    throw new BitcoinAddressError(`Unsupported blockchain: ${chain}`);
-  }
-
-  const addressData = await fetchAddressMetadata(
-    chainConfig,
+  return DepositAddressVerifier.verifyOnline({
+    chain,
     toAddress,
     network,
-  );
-
-  const service = createAddressService(config);
-  const addresses = await Promise.all(
-    addressData.addresses.map(async (addr) => {
-      const toAddress =
-        chainConfig.ecosystem === Ecosystem.Solana
-          ? await findSolanaAssociatedTokenAddress(
-              addr.toAddress,
-              network === Networks.mainnet
-                ? SOLANA_MAINNET_MINT_ADDRESS
-                : SOLANA_GASTALD_MINT_ADDRESS,
-            )
-          : Buffer.from(trimHexPrefix(addr.toAddress), "hex");
-
-      const computed = service.calculateDeterministicAddress(
-        addr.auxVersion,
-        chainConfig.chainId,
-        addr.tokenAddress,
-        toAddress,
-        Buffer.from(addr.referralId),
-        addr.nonce,
-        chainConfig.ecosystem,
-      );
-
-      const tokenAddressDisplay =
-        chainConfig.ecosystem === Ecosystem.Solana
-          ? bs58.encode(addr.tokenAddress)
-          : `0x${addr.tokenAddress.toString("hex")}`;
-
-      return {
-        computed,
-        expected: addr.btcAddress,
-        blockchain: chainConfig.name,
-        referralId: addr.referralId,
-        nonce: addr.nonce,
-        auxVersion: addr.auxVersion,
-        tokenAddress: tokenAddressDisplay,
-      };
-    }),
-  );
-
-  return { addresses };
-}
-
-async function findSolanaAssociatedTokenAddress(
-  addressBase58: string,
-  mintBase58: string,
-): Promise<Buffer> {
-  const address = new PublicKey(addressBase58);
-  const mint = new PublicKey(mintBase58);
-
-  const ata = await getAssociatedTokenAddress(mint, address);
-  return Buffer.from(ata.toBytes());
+  });
 }

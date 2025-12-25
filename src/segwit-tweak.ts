@@ -20,7 +20,7 @@ export function tweakPublicKey(
     const pubKeyPoint = secp256k1.Point.fromHex(publicKey);
     const tweakPoint = secp256k1.Point.fromPrivateKey(tweakScalar);
     const tweakedPoint = pubKeyPoint.add(tweakPoint);
-    
+
     // Convert back to Buffer (compressed format)
     return Buffer.from(tweakedPoint.toRawBytes(true));
   } catch (error) {

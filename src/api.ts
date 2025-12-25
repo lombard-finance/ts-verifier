@@ -44,6 +44,7 @@ export interface AddressesResponse {
   addresses: {
     btcAddress: string;
     toAddress: string;
+    toBlockchain: string;
     referralId: string;
     nonce: number;
     auxVersion: number;
@@ -98,6 +99,7 @@ export async function fetchAddressMetadata(
         return {
           btcAddress: addr.btc_address,
           toAddress: addr.deposit_metadata.to_address,
+          toBlockchain: addr.deposit_metadata.to_blockchain,
           referralId: addr.deposit_metadata.referral,
           nonce: addr.deposit_metadata.nonce ?? 0,
           auxVersion: addr.deposit_metadata.aux_version ?? 0,
