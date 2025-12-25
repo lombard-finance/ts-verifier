@@ -66,8 +66,8 @@ export interface AddressVerificationResult {
 export interface VerifyOnlineParams {
   /** Target blockchain */
   chain: SupportedBlockchains;
-  /** Destination address on target chain */
-  address: string;
+  /** Destination address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
+  toAddress: string;
   /** Bitcoin network (mainnet or gastald). Defaults to mainnet */
   network?: NetworkParams;
 }
@@ -110,13 +110,13 @@ export class DepositAddressVerifier {
 
     const addressData = await fetchAddressMetadata(
       chainConfig,
-      params.address,
+      params.toAddress,
       network,
     );
 
     const addresses = await Promise.all(
       addressData.addresses.map(async (addr) => {
-        this.validateApiResponse(addr, params.address, chainConfig);
+        this.validateApiResponse(addr, params.toAddress, chainConfig);
 
         const toAddressBuffer = await this.parseToAddress(
           addr.toAddress,
@@ -192,7 +192,11 @@ export class DepositAddressVerifier {
   private static getContext(
     chain: SupportedBlockchains,
     network?: NetworkParams,
-  ): { network: NetworkParams; chainConfig: BlockchainConfig; tweaker: Tweaker } {
+  ): {
+    network: NetworkParams;
+    chainConfig: BlockchainConfig;
+    tweaker: Tweaker;
+  } {
     const resolvedNetwork = network ?? Networks.mainnet;
 
     const chainConfigs =
@@ -246,7 +250,10 @@ export class DepositAddressVerifier {
   /**
    * Parse token address to buffer based on ecosystem
    */
-  private static parseTokenAddress(address: string, ecosystem: Ecosystem): Buffer {
+  private static parseTokenAddress(
+    address: string,
+    ecosystem: Ecosystem,
+  ): Buffer {
     return ecosystem === Ecosystem.Solana
       ? Buffer.from(bs58.decode(address))
       : Buffer.from(trimHexPrefix(address), "hex");
@@ -255,7 +262,10 @@ export class DepositAddressVerifier {
   /**
    * Format token address for display
    */
-  private static formatTokenAddress(address: Buffer, ecosystem: Ecosystem): string {
+  private static formatTokenAddress(
+    address: Buffer,
+    ecosystem: Ecosystem,
+  ): string {
     return ecosystem === Ecosystem.Solana
       ? bs58.encode(address)
       : `0x${address.toString("hex")}`;
@@ -379,7 +389,6 @@ export class DepositAddressVerifier {
 /** @deprecated Use DepositAddressVerifier.verifyOnline() instead */
 export interface AddressCalculationResult extends AddressVerificationResult {}
 
-
 /**
  * @deprecated Use DepositAddressVerifier.verifyOnline() instead.
  * This function is kept for backward compatibility and will be removed in a future version.
@@ -391,9 +400,7 @@ export async function calculateDeterministicAddress(
 ): Promise<AddressCalculationResult> {
   return DepositAddressVerifier.verifyOnline({
     chain,
-    address: toAddress,
+    toAddress,
     network,
   });
 }
-
-

@@ -110,7 +110,7 @@ import { DepositAddressVerifier, SupportedBlockchains, Networks } from "@lombard
 
 const result = await DepositAddressVerifier.verifyOnline({
   chain: SupportedBlockchains.Ethereum,
-  address: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
+  toAddress: "0x0F90793a54E809bf708bd0FbCC63d311E3bb1BE1",
   network: Networks.mainnet, // optional, defaults to mainnet
 });
 

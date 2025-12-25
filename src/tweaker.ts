@@ -1,10 +1,10 @@
-import * as secp256k1 from '@noble/secp256k1';
+import * as secp256k1 from "@noble/secp256k1";
 import {
   pubkeyToSegwitAddr,
   NetworkParams,
   BitcoinAddressError,
-} from './bitcoin';
-import { tweakPublicKey } from './segwit-tweak';
+} from "./bitcoin";
+import { tweakPublicKey } from "./segwit-tweak";
 
 /**
  * Tweaker class for handling public key tweaking operations
@@ -17,7 +17,7 @@ export class Tweaker {
     try {
       secp256k1.Point.fromHex(publicKey);
     } catch (error) {
-      throw new BitcoinAddressError('Invalid public key');
+      throw new BitcoinAddressError("Invalid public key");
     }
 
     this.publicKey = publicKey;
