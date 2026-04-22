@@ -2,9 +2,9 @@ import * as crypto from "crypto-browserify";
 import { sha256, BitcoinAddressError } from "./bitcoin";
 
 const DEPOSIT_AUX_TAG = "LombardDepositAux";
-const DEPOSIT_AUX_V0 = 0;
-const DEPOSIT_AUX_V1 = 1;
-const SUPPORTED_VERSIONS = new Set([DEPOSIT_AUX_V0, DEPOSIT_AUX_V1]);
+export const DEPOSIT_AUX_V0 = 0;
+export const DEPOSIT_AUX_V1 = 1;
+export const SUPPORTED_VERSIONS = new Set([DEPOSIT_AUX_V0, DEPOSIT_AUX_V1]);
 const MAX_REFERRAL_ID_SIZE = 256;
 
 /**

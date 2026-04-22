@@ -13,9 +13,10 @@ import {
   LChainId,
   SupportedBlockchains,
   BlockchainConfig,
+  TokenConfig,
 } from "./chain-id";
 import { fetchAddressMetadata, trimHexPrefix } from "./api";
-import { computeAuxData } from "./aux-data";
+import { computeAuxData, DEPOSIT_AUX_V0, DEPOSIT_AUX_V1 } from "./aux-data";
 import {
   sha256,
   Networks,
@@ -36,14 +37,6 @@ export const GASTALD_PUBLIC_KEY = Buffer.from(
   "025615e9748b945bad807b56d3a723578673d08566a4818510c0ba2123317414f8",
   "hex",
 );
-
-// For Solana we mint to token account address associated with a user address
-// Mint addresses for mainnet and Gastald testnet
-const SOLANA_MAINNET_MINT_ADDRESS =
-  "LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY";
-
-const SOLANA_GASTALD_MINT_ADDRESS =
-  "1BTCPX3qyFtBvhQvJaHntfzZfB8qcJmJXfoRnD3vAgh";
 
 /**
  * Result of online verification
@@ -80,9 +73,11 @@ export interface ComputeOfflineParams {
   chain: SupportedBlockchains;
   /** Destination address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
   toAddress: string;
-  /** Token address on target chain (hex for EVM/Sui/Starknet, base58 for Solana) */
-  tokenAddress: string;
-  /** Partner/referral code */
+  /** Token address on target chain (hex for EVM/Sui/Starknet, base58 for Solana).
+   * Required for auxVersion 1. 
+   **/
+  tokenAddress?: string;
+  /** Partner referral code */
   referralId: string;
   /** Nonce value */
   nonce: number;
@@ -118,17 +113,23 @@ export class DepositAddressVerifier {
       addressData.addresses.map(async (addr) => {
         this.validateApiResponse(addr, params.toAddress, chainConfig);
 
-        const toAddressBuffer = await this.parseToAddress(
+        const tokenCfg = this.resolveTokenAddress(
+          addr.tokenAddress,
+          addr.auxVersion,
+          chainConfig,
+        );
+
+        const toAddressBuffer = await this.resolveToAddress(
           addr.toAddress,
-          chainConfig.ecosystem,
-          network,
+          tokenCfg,
+          chainConfig
         );
 
         const computed = this.deriveAddress(
           tweaker,
           network,
           chainConfig,
-          addr.tokenAddress,
+          tokenCfg.tokenAddress,
           toAddressBuffer,
           addr.referralId,
           addr.nonce,
@@ -142,8 +143,8 @@ export class DepositAddressVerifier {
           referralId: addr.referralId,
           nonce: addr.nonce,
           auxVersion: addr.auxVersion,
-          tokenAddress: this.formatTokenAddress(
-            addr.tokenAddress,
+          tokenAddress: this.addressToString(
+            tokenCfg.tokenAddress,
             chainConfig.ecosystem,
           ),
         };
@@ -163,22 +164,27 @@ export class DepositAddressVerifier {
       params.network,
     );
 
-    const tokenAddressBuffer = this.parseTokenAddress(
-      params.tokenAddress,
-      chainConfig.ecosystem,
+    const tokenAddress = params.tokenAddress
+      ? this.addressFromString(params.tokenAddress, chainConfig.ecosystem)
+      : null;
+
+    const tokenCfg = this.resolveTokenAddress(
+      tokenAddress,
+      params.auxVersion,
+      chainConfig,
     );
 
-    const toAddressBuffer = await this.parseToAddress(
+    const toAddressBuffer = await this.resolveToAddress(
       params.toAddress,
-      chainConfig.ecosystem,
-      network,
+      tokenCfg,
+      chainConfig,
     );
 
     return this.deriveAddress(
       tweaker,
       network,
       chainConfig,
-      tokenAddressBuffer,
+      tokenCfg.tokenAddress,
       toAddressBuffer,
       params.referralId,
       params.nonce,
@@ -250,7 +256,64 @@ export class DepositAddressVerifier {
   /**
    * Parse token address to buffer based on ecosystem
    */
-  private static parseTokenAddress(
+  private static resolveTokenAddress(
+    targetTokenAddress: Address | null,
+    auxVersion: number,
+    chainConfig: BlockchainConfig,
+  ): TokenConfig {
+    switch (auxVersion) {
+      case DEPOSIT_AUX_V0: {
+        if (chainConfig.ecosystem === Ecosystem.Solana) {
+          // For aux v0, the token address is the LBTC program address and the mint address is the LBTC token address
+          if (!chainConfig.stlbtcProgram) {
+            throw new Error("stlbtcProgram is required for Solana aux v0");
+          }
+
+          const tokenAddress = targetTokenAddress
+            ? targetTokenAddress
+            : chainConfig.stlbtcProgram;
+          return { tokenAddress: tokenAddress, solanaMintAddress: chainConfig.stlbtc }
+        }
+
+        const tokenAddress = targetTokenAddress
+          ? targetTokenAddress
+          : chainConfig.stlbtc;
+        return { tokenAddress: tokenAddress }
+      }
+
+      case DEPOSIT_AUX_V1: {
+        if (!targetTokenAddress) {
+          throw new Error("target token address is required for aux v1");
+        }
+
+        if (chainConfig.ecosystem === Ecosystem.Solana) {
+          return { tokenAddress: targetTokenAddress, solanaMintAddress: targetTokenAddress }
+        }
+
+        return { tokenAddress: targetTokenAddress }
+      }
+
+      default:
+        throw new Error(`unknown aux version ${auxVersion}`);
+    }
+  }
+
+  /**
+   * Convert address to string based on ecosystem
+   */
+  private static addressToString(
+    address: Address,
+    ecosystem: Ecosystem,
+  ): string {
+    return ecosystem === Ecosystem.Solana
+      ? bs58.encode(address)
+      : `0x${address.toString("hex")}`;
+  }
+
+  /**
+   * Convert from string to Address based on ecosystem
+   */
+  private static addressFromString(
     address: string,
     ecosystem: Ecosystem,
   ): Buffer {
@@ -260,31 +323,21 @@ export class DepositAddressVerifier {
   }
 
   /**
-   * Format token address for display
-   */
-  private static formatTokenAddress(
-    address: Buffer,
-    ecosystem: Ecosystem,
-  ): string {
-    return ecosystem === Ecosystem.Solana
-      ? bs58.encode(address)
-      : `0x${address.toString("hex")}`;
-  }
-
-  /**
    * Parse destination address to buffer based on ecosystem
    */
-  private static async parseToAddress(
+  private static async resolveToAddress(
     address: string,
-    ecosystem: Ecosystem,
-    network: NetworkParams,
+    tokenCfg: TokenConfig,
+    chainConfig: BlockchainConfig,
   ): Promise<Buffer> {
-    if (ecosystem === Ecosystem.Solana) {
+    if (chainConfig.ecosystem === Ecosystem.Solana) {
+      if (!tokenCfg.solanaMintAddress) {
+        throw new Error("solana mint address is required");
+      }
+
       return this.findSolanaAssociatedTokenAddress(
         address,
-        network === Networks.mainnet
-          ? SOLANA_MAINNET_MINT_ADDRESS
-          : SOLANA_GASTALD_MINT_ADDRESS,
+        this.addressToString(tokenCfg.solanaMintAddress, chainConfig.ecosystem)
       );
     }
     return Buffer.from(trimHexPrefix(address), "hex");

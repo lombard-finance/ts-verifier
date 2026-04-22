@@ -55,7 +55,7 @@ ts-node src/example.ts
 The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this:
 
 ```bash
-$ ts-node src/verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6                
+$ ts-node src/verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6             
 Address 1: bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn
 Metadata used:
   - To Address: 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6
@@ -69,7 +69,7 @@ Addresses match!
 
 or like this:
 ```bash
-$  ts-node src/verifier.ts solana 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2      
+$  ts-node src/verifier.ts solana 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2
 Address 1: bc1qhvquxlsegnyc3fsuckvs8qqm28puu23mycdh7u
 Metadata used:
   - To Address: 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2
