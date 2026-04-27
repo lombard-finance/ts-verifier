@@ -4,7 +4,7 @@
 import bs58 from "bs58";
 import * as crypto from "crypto-browserify";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
-import { PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import {
   mainnetBlockchainConfigs,
   gastaldBlockchainConfigs,
@@ -27,6 +27,11 @@ import { Tweaker } from "./tweaker";
 
 const DEPOSIT_ADDR_TAG = "LombardDepositAddr";
 const DEPRECATED_CHAIN_TAG = 0;
+
+const SOLANA_RPC_DEFAULTS = {
+  mainnet: "https://api.mainnet-beta.solana.com",
+  devnet: "https://api.devnet.solana.com",
+};
 
 // Root deposit public keys for mainnet and Gastald testnet
 export const MAINNET_PUBLIC_KEY = Buffer.from(
@@ -63,6 +68,9 @@ export interface VerifyOnlineParams {
   toAddress: string;
   /** Bitcoin network (mainnet or gastald). Defaults to mainnet */
   network?: NetworkParams;
+  /** Solana RPC connection. Used to look up the mint's owning token program when
+   * deriving the Associated Token Address. Defaults based on `network`. */
+  solanaConnection?: Connection;
 }
 
 /**
@@ -85,6 +93,9 @@ export interface ComputeOfflineParams {
   auxVersion: number;
   /** Bitcoin network (mainnet or gastald). Defaults to mainnet */
   network?: NetworkParams;
+  /** Solana RPC connection. Used to look up the mint's owning token program when
+   * deriving the Associated Token Address. Defaults based on `network`. */
+  solanaConnection?: Connection;
 }
 
 /**
@@ -98,9 +109,10 @@ export class DepositAddressVerifier {
   static async verifyOnline(
     params: VerifyOnlineParams,
   ): Promise<AddressVerificationResult> {
-    const { network, chainConfig, tweaker } = this.getContext(
+    const { network, chainConfig, tweaker, solanaConnection } = this.getContext(
       params.chain,
       params.network,
+      params.solanaConnection,
     );
 
     const addressData = await fetchAddressMetadata(
@@ -122,7 +134,8 @@ export class DepositAddressVerifier {
         const toAddressBuffer = await this.resolveToAddress(
           addr.toAddress,
           tokenCfg,
-          chainConfig
+          chainConfig,
+          solanaConnection,
         );
 
         const computed = this.deriveAddress(
@@ -159,9 +172,10 @@ export class DepositAddressVerifier {
    * Use this for fully offline verification when you have all parameters.
    */
   static async computeOffline(params: ComputeOfflineParams): Promise<string> {
-    const { network, chainConfig, tweaker } = this.getContext(
+    const { network, chainConfig, tweaker, solanaConnection } = this.getContext(
       params.chain,
       params.network,
+      params.solanaConnection,
     );
 
     const tokenAddress = params.tokenAddress
@@ -178,6 +192,7 @@ export class DepositAddressVerifier {
       params.toAddress,
       tokenCfg,
       chainConfig,
+      solanaConnection,
     );
 
     return this.deriveAddress(
@@ -193,15 +208,19 @@ export class DepositAddressVerifier {
   }
 
   /**
-   * Get common context: resolved network, chain config, and tweaker
+   * Get common context: resolved network, chain config, tweaker, and a Solana
+   * RPC connection (used to look up the mint's owning token program for ATA
+   * derivation).
    */
   private static getContext(
     chain: SupportedBlockchains,
     network?: NetworkParams,
+    solanaConnection?: Connection,
   ): {
     network: NetworkParams;
     chainConfig: BlockchainConfig;
     tweaker: Tweaker;
+    solanaConnection: Connection;
   } {
     const resolvedNetwork = network ?? Networks.mainnet;
 
@@ -221,7 +240,21 @@ export class DepositAddressVerifier {
         : GASTALD_PUBLIC_KEY;
     const tweaker = new Tweaker(publicKey);
 
-    return { network: resolvedNetwork, chainConfig, tweaker };
+    const conn =
+      solanaConnection ??
+      new Connection(
+        resolvedNetwork === Networks.mainnet
+          ? SOLANA_RPC_DEFAULTS.mainnet
+          : SOLANA_RPC_DEFAULTS.devnet,
+        "confirmed",
+      );
+
+    return {
+      network: resolvedNetwork,
+      chainConfig,
+      tweaker,
+      solanaConnection: conn,
+    };
   }
 
   /**
@@ -329,6 +362,7 @@ export class DepositAddressVerifier {
     address: string,
     tokenCfg: TokenConfig,
     chainConfig: BlockchainConfig,
+    solanaConnection: Connection,
   ): Promise<Buffer> {
     if (chainConfig.ecosystem === Ecosystem.Solana) {
       if (!tokenCfg.solanaMintAddress) {
@@ -337,22 +371,42 @@ export class DepositAddressVerifier {
 
       return this.findSolanaAssociatedTokenAddress(
         address,
-        this.addressToString(tokenCfg.solanaMintAddress, chainConfig.ecosystem)
+        this.addressToString(tokenCfg.solanaMintAddress, chainConfig.ecosystem),
+        solanaConnection,
       );
     }
     return Buffer.from(trimHexPrefix(address), "hex");
   }
 
   /**
-   * Find Solana Associated Token Address
+   * Find Solana Associated Token Address.
+   *
+   * The mint can be owned by either the legacy Token Program or the Token-2022
+   * Program; ATA derivation differs by program. We look up the mint's account
+   * info on chain to discover its owning program, then derive the ATA against
+   * that program.
    */
   private static async findSolanaAssociatedTokenAddress(
     addressBase58: string,
     mintBase58: string,
+    connection: Connection,
   ): Promise<Buffer> {
     const address = new PublicKey(addressBase58);
     const mint = new PublicKey(mintBase58);
-    const ata = await getAssociatedTokenAddress(mint, address);
+
+    const mintAccount = await connection.getAccountInfo(mint);
+    if (!mintAccount) {
+      throw new BitcoinAddressError(
+        `Solana mint account not found: ${mintBase58}`,
+      );
+    }
+
+    const ata = await getAssociatedTokenAddress(
+      mint,
+      address,
+      false,
+      mintAccount.owner,
+    );
     return Buffer.from(ata.toBytes());
   }
 
