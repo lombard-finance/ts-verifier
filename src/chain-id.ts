@@ -6,6 +6,12 @@ export type Address = Buffer;
 // ChainId type
 export type LChainId = Buffer;
 
+// Token config type
+export type TokenConfig = {
+  tokenAddress: Address,
+  solanaMintAddress?: Address,
+};
+
 // Blockchain Types
 export enum Ecosystem {
   EVM = "evm",
@@ -40,7 +46,6 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("8236a87084f8B84306f72007F36F2618A5634494", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_ETHEREUM",
       ecosystem: Ecosystem.EVM,
     },
@@ -54,7 +59,6 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_BASE",
       ecosystem: Ecosystem.EVM,
     },
@@ -68,7 +72,6 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_BSC",
       ecosystem: Ecosystem.EVM,
     },
@@ -85,7 +88,6 @@ export const mainnetBlockchainConfigs = new Map([
         "3e8e9423d80e1774a7ca128fccd8bf5f1f7753be658c5e645929037f7c819040",
         "hex",
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SUI",
       ecosystem: Ecosystem.Sui,
     },
@@ -99,7 +101,6 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SONIC",
       ecosystem: Ecosystem.EVM,
     },
@@ -113,7 +114,6 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("ecAc9C5F704e954931349Da37F60E39f515c11c1", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_INK",
       ecosystem: Ecosystem.EVM,
     },
@@ -127,9 +127,14 @@ export const mainnetBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from(
+        bs58.decode("LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY"),
+      ),
+      nativeLbtc: Buffer.from(
+        bs58.decode("BTCbKVgfW4xMqTWEmxVwc6pzg2c5YtQWxSpBuQDhUrpu"),
+      ),
+      stlbtcProgram: Buffer.from(
         bs58.decode("LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek"),
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SOLANA",
       ecosystem: Ecosystem.Solana,
     },
@@ -231,7 +236,6 @@ export const mainnetBlockchainConfigs = new Map([
         "05b1886d0f844ab930fc0ee066f1655a873437f15a5d2c41ee3e884fd5299976",
         "hex",
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_STARKNET",
       ecosystem: Ecosystem.Starknet,
     },
@@ -265,7 +269,6 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_BASE",
       ecosystem: Ecosystem.EVM,
     },
@@ -279,7 +282,6 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_BSC",
       ecosystem: Ecosystem.EVM,
     },
@@ -296,7 +298,6 @@ export const gastaldBlockchainConfigs = new Map([
         "50454d0b0fbad1288a6ab74f2e8ce0905a3317870673ab7787ebcf6f322b45fa",
         "hex",
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SUI",
       ecosystem: Ecosystem.Sui,
     },
@@ -310,7 +311,6 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SONIC",
       ecosystem: Ecosystem.EVM,
     },
@@ -324,7 +324,6 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from("107Fc7d90484534704dD2A9e24c7BD45DB4dD1B5", "hex"),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_INK",
       ecosystem: Ecosystem.EVM,
     },
@@ -338,9 +337,14 @@ export const gastaldBlockchainConfigs = new Map([
         "hex",
       ),
       stlbtc: Buffer.from(
+        bs58.decode("1BTCPX3qyFtBvhQvJaHntfzZfB8qcJmJXfoRnD3vAgh"),
+      ),
+      nativeLbtc: Buffer.from(
+        bs58.decode("BTCb1Xy55DzwPMog9d3ztPau4nqXp6BhUrdGHjTrMYCn"),
+      ),
+      stlbtcProgram: Buffer.from(
         bs58.decode("79cscM6J9Af24TGGWcXyDf56fDLoodkyXdVy4R9aZ6C6"),
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_SOLANA",
       ecosystem: Ecosystem.Solana,
     },
@@ -391,7 +395,6 @@ export const gastaldBlockchainConfigs = new Map([
         "063b7b5c8b114ebd5b9602fbd5d0ffd2cc3a598f1d91c6904cc0997cd8fea760",
         "hex",
       ),
-      nativeLbtc: null,
       name: "DESTINATION_BLOCKCHAIN_STARKNET",
       ecosystem: Ecosystem.Starknet,
     },
@@ -402,7 +405,8 @@ export const gastaldBlockchainConfigs = new Map([
 export interface BlockchainConfig {
   chainId: LChainId;
   stlbtc: Address;
-  nativeLbtc: Address | null;
+  nativeLbtc?: Address;
+  stlbtcProgram?: Address; // only for solana
   name: string;
   ecosystem: Ecosystem;
 }

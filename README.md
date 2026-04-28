@@ -52,10 +52,10 @@ You can also run an example:
 ts-node src/example.ts
 ```
 
-The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this:
+The library will query the Lombard API for deposit addresses, and then compute them internally to see if they match. For each deposit address linked to your destination address, the binary will attempt to match them, printing out 'match' or 'mismatch' in either case, and printing both addresses (fetched and derived) in all cases so that you may double-check the result yourself. It will look something like this for Ethereum:
 
 ```bash
-$ ts-node src/verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6                
+$ ts-node src/verifier.ts ethereum 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6             
 Address 1: bc1qu6mwr50akfpfwjes4nh53taexuhzt6gsf8ysnn
 Metadata used:
   - To Address: 0x564974801D2ffBE736Ed59C9bE39F6c0A4274aE6
@@ -67,26 +67,39 @@ Metadata used:
 Addresses match!
 ```
 
-or like this:
+or like this for Solana:
 ```bash
-$  ts-node src/verifier.ts solana 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2      
-Address 1: bc1qhvquxlsegnyc3fsuckvs8qqm28puu23mycdh7u
+$  ts-node src/verifier.ts solana ECC6SMkL7HquBz95Cmi8eM4Gg35NrTvAzNBxZhmZ7r1N
+
+Address 1: bc1qkackwyruzgwp9z5hqjgwg3xmvdngf70tngnsgh
 Metadata used:
-  - To Address: 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2
-  - Blockchain: solana
-  - Partner Code: lombard
+  - To Address: ECC6SMkL7HquBz95Cmi8eM4Gg35NrTvAzNBxZhmZ7r1N
+  - Blockchain: DESTINATION_BLOCKCHAIN_SOLANA
+  - Partner Code: lombardtest1
   - Nonce: 0
-  - Aux Version: 0
-  - Token Address: LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek
+  - Aux Version: 1
+  - Token Address: BTCbKVgfW4xMqTWEmxVwc6pzg2c5YtQWxSpBuQDhUrpu
 Addresses match!
 
 ------------------------------------------------------------
 
-Address 2: bc1qast400qh327zr6gg8s0n0t05gu9q0z7utfmh00
+Address 2: bc1ql235mvhlqa3wgasea4xvn3azfsxupqle2rdz9j
 Metadata used:
-  - To Address: 74AYR1KpkXw3RYHia4KDGSGqNjGgEDWjLtdEvAgHcLu2
-  - Blockchain: solana
-  - Partner Code: okx
+  - To Address: ECC6SMkL7HquBz95Cmi8eM4Gg35NrTvAzNBxZhmZ7r1N
+  - Blockchain: DESTINATION_BLOCKCHAIN_SOLANA
+  - Partner Code: lombard
+  - Nonce: 0
+  - Aux Version: 1
+  - Token Address: LBTCgU4b3wsFKsPwBn1rRZDx5DoFutM6RPiEt1TPDsY
+Addresses match!
+
+------------------------------------------------------------
+
+Address 3: bc1q78v6rnd5py9e9eyenaj0uh2p52lakw7yt07ns6
+Metadata used:
+  - To Address: ECC6SMkL7HquBz95Cmi8eM4Gg35NrTvAzNBxZhmZ7r1N
+  - Blockchain: DESTINATION_BLOCKCHAIN_SOLANA
+  - Partner Code: lombard
   - Nonce: 0
   - Aux Version: 0
   - Token Address: LomP48F7bLbKyMRHHsDVt7wuHaUQvQnVVspjcbfuAek

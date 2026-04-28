@@ -48,7 +48,7 @@ export interface AddressesResponse {
     referralId: string;
     nonce: number;
     auxVersion: number;
-    tokenAddress: Address;
+    tokenAddress: Address | null;
   }[];
 }
 
@@ -85,17 +85,14 @@ export async function fetchAddressMetadata(
 
     const addresses = await Promise.all(
       nonDeprecatedAddresses.map(async (addr) => {
-        let tokenAddress = chainConfig.stlbtc;
-        if (addr.deposit_metadata.token_address != undefined) {
-          tokenAddress =
-            chainConfig.ecosystem === Ecosystem.Solana
-              ? Buffer.from(bs58.decode(addr.deposit_metadata.token_address))
-              : Buffer.from(
-                  trimHexPrefix(addr.deposit_metadata.token_address),
-                  "hex",
-                );
-        }
-
+        const tokenAddress = addr.deposit_metadata.token_address ?
+          chainConfig.ecosystem === Ecosystem.Solana
+            ? Buffer.from(bs58.decode(addr.deposit_metadata.token_address))
+            : Buffer.from(
+                trimHexPrefix(addr.deposit_metadata.token_address),
+                "hex",
+          ) : null;
+      
         return {
           btcAddress: addr.btc_address,
           toAddress: addr.deposit_metadata.to_address,
