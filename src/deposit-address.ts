@@ -220,7 +220,7 @@ export class DepositAddressVerifier {
     network: NetworkParams;
     chainConfig: BlockchainConfig;
     tweaker: Tweaker;
-    solanaConnection: Connection;
+    solanaConnection?: Connection;
   } {
     const resolvedNetwork = network ?? Networks.mainnet;
 
@@ -240,14 +240,17 @@ export class DepositAddressVerifier {
         : GASTALD_PUBLIC_KEY;
     const tweaker = new Tweaker(publicKey);
 
+    // Only construct a Solana RPC connection when we'll actually need it.
     const conn =
-      solanaConnection ??
-      new Connection(
-        resolvedNetwork === Networks.mainnet
-          ? SOLANA_RPC_DEFAULTS.mainnet
-          : SOLANA_RPC_DEFAULTS.devnet,
-        "confirmed",
-      );
+      chainConfig.ecosystem === Ecosystem.Solana
+        ? (solanaConnection ??
+          new Connection(
+            resolvedNetwork === Networks.mainnet
+              ? SOLANA_RPC_DEFAULTS.mainnet
+              : SOLANA_RPC_DEFAULTS.devnet,
+            "confirmed",
+          ))
+        : undefined;
 
     return {
       network: resolvedNetwork,
@@ -362,11 +365,14 @@ export class DepositAddressVerifier {
     address: string,
     tokenCfg: TokenConfig,
     chainConfig: BlockchainConfig,
-    solanaConnection: Connection,
+    solanaConnection?: Connection,
   ): Promise<Buffer> {
     if (chainConfig.ecosystem === Ecosystem.Solana) {
       if (!tokenCfg.solanaMintAddress) {
         throw new Error("solana mint address is required");
+      }
+      if (!solanaConnection) {
+        throw new Error("solana connection is required");
       }
 
       return this.findSolanaAssociatedTokenAddress(
